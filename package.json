@@ -1,0 +1,52 @@
+{
+  "name": "receipt-organizer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Organizes payment receipts and bills from a cloud drive: it reads them, files them, spots duplicates and tracks what has been paid.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "next dev -p ${PORT:-3000}",
+    "build": "next build && npm run build:scripts",
+    "build:scripts": "node scripts/bundle.mjs",
+    "start": "next start -p ${PORT:-3000}",
+    "worker": "tsx scripts/worker.ts",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/seed.ts --reset",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "smoke": "tsx scripts/smoke.ts",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.26",
+    "pg": "^8.23.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@next/eslint-plugin-next": "^15.5.26",
+    "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.6.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vitest": "^5.0.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.28"
+  }
+}

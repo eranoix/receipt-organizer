@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+.data
+.git
+docs/screenshots
+coverage
+.env

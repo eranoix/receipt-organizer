@@ -1,0 +1,70 @@
+# One command: database, migrations + seed, web app and worker.
+#   docker compose -p ro-portfolio up --build
+# Web on http://localhost:5610, Postgres on localhost:5611.
+name: ro-portfolio
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://receipts:receipts@db:5432/receipts
+  DRIVE_ROOT: /data/drive
+  DRIVE_ADAPTER: ${DRIVE_ADAPTER:-local}
+  EXTRACTOR: ${EXTRACTOR:-mock}
+  EXTRACTOR_ALLOWED_HOSTS: ${EXTRACTOR_ALLOWED_HOSTS:-.example.com}
+  COOKIE_SECURE: ${COOKIE_SECURE:-false}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: receipts
+      POSTGRES_PASSWORD: receipts
+      POSTGRES_DB: receipts
+    ports:
+      - "5611:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U receipts -d receipts"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  setup:
+    build: .
+    image: ro-portfolio-app
+    command: ["sh", "-c", "node dist/migrate.mjs && node dist/seed.mjs --if-empty"]
+    environment: *app-env
+    volumes:
+      - drive:/data/drive
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: ro-portfolio-app
+    environment: *app-env
+    ports:
+      - "5610:3000"
+    volumes:
+      - drive:/data/drive
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    image: ro-portfolio-app
+    command: ["node", "dist/worker.mjs"]
+    environment: *app-env
+    volumes:
+      - drive:/data/drive
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  drive:
