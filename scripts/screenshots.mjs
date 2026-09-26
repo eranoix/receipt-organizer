@@ -1,5 +1,7 @@
 // Capture the README screenshots with headless Chrome over the DevTools
-// protocol (Node 22 has WebSocket built in, so no extra dependency).
+// protocol (Node 22 has WebSocket built in, so no extra dependency). Every
+// screen is saved twice: <name>.png in the light theme, <name>-dark.png in the
+// dark one, at device scale factor 2.
 //   BASE_URL=http://localhost:5610 CHROME=google-chrome node scripts/screenshots.mjs
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
@@ -84,7 +86,6 @@ const shots = [
   { name: '08-operations', url: '/operations?state=open', click: 'tbody tr.row:nth-child(1)' },
   { name: '09-status', url: '/status' },
   { name: '10-settings-people', url: '/settings', click: '[role=tab]:nth-child(4)' },
-  { name: '11-dark-review', url: `/review?file=${pngSuggested.file_id}`, dark: true },
   { name: '12-login', url: '/login', anonymous: true },
 ];
 
@@ -92,15 +93,15 @@ const c = connect(await cdpTarget());
 await c.ready;
 await c.send('Page.enable');
 await c.send('Network.enable');
-await c.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+await c.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 2, mobile: false });
 
 const only = process.argv[2];
-for (const s of shots) {
+for (const s of shots) for (const dark of [false, true]) {
   if (only && !s.name.includes(only)) continue;
   await c.send('Network.clearBrowserCookies');
   if (!s.anonymous) await c.send('Network.setCookie', { name: 'ro_session', value: token, url: BASE });
-  await c.send('Network.setCookie', { name: 'ro_theme', value: s.dark ? 'dark' : 'light', url: BASE });
-  await c.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: s.dark ? 'dark' : 'light' }] });
+  await c.send('Network.setCookie', { name: 'ro_theme', value: dark ? 'dark' : 'light', url: BASE });
+  await c.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }] });
   const loaded = c.once('Page.loadEventFired');
   await c.send('Page.navigate', { url: `${BASE}${s.url}` });
   await loaded;
@@ -110,8 +111,9 @@ for (const s of shots) {
     await sleep(2000);
   }
   const { data } = await c.send('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: W, height: H, scale: 1 } });
-  writeFileSync(path.join(OUT, `${s.name}.png`), Buffer.from(data, 'base64'));
-  console.log(`saved ${s.name}.png`);
+  const file = `${s.name}${dark ? '-dark' : ''}.png`;
+  writeFileSync(path.join(OUT, file), Buffer.from(data, 'base64'));
+  console.log(`saved ${file}`);
 }
 
 c.close();

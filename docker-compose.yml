@@ -1,6 +1,7 @@
 # One command: database, migrations + seed, web app and worker.
 #   docker compose -p ro-portfolio up --build
-# Web on http://localhost:5610, Postgres on localhost:5611.
+# Web on http://localhost:5610, Postgres on localhost:5611 (WEB_PORT and
+# DB_PORT change them).
 name: ro-portfolio
 
 x-app-env: &app-env
@@ -19,11 +20,13 @@ services:
       POSTGRES_PASSWORD: receipts
       POSTGRES_DB: receipts
     ports:
-      - "5611:5432"
+      - "127.0.0.1:${DB_PORT:-5611}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U receipts -d receipts"]
+      # Over TCP: during first start-up Postgres runs a temporary server on the
+      # socket only, and a socket check would let setup in too early.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U receipts -d receipts"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -41,9 +44,11 @@ services:
 
   web:
     image: ro-portfolio-app
+    # Built by the setup service; never looked for on a registry.
+    pull_policy: never
     environment: *app-env
     ports:
-      - "5610:3000"
+      - "127.0.0.1:${WEB_PORT:-5610}:3000"
     volumes:
       - drive:/data/drive
     depends_on:
@@ -57,6 +62,7 @@ services:
 
   worker:
     image: ro-portfolio-app
+    pull_policy: never
     command: ["node", "dist/worker.mjs"]
     environment: *app-env
     volumes:

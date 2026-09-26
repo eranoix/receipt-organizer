@@ -4,7 +4,7 @@
 
 *In plain words:* A small business (or a busy household) ends up with receipts everywhere: PDFs from the bank app, photos taken on a phone, boletos, card slips. This app watches a folder in your cloud drive where you drop them. It reads each one (who was paid, how much, when, how), suggests the folder it belongs in and waits for you to say yes. It notices when the same receipt arrives twice and proves it before anything is deleted. It knows your monthly bills, so it can tell you which ones are paid and which are late, and it can even pay a bill and file the receipt that comes back. Nothing is moved, deleted or paid unless a person asks for it.
 
-![Review screen: a receipt, the fields read from it and the suggested folder with its confidence](docs/screenshots/02-review.png)
+<p align="center"><img src="docs/screenshots/02-review.png" width="49%" alt="Review screen: a receipt, the fields read from it and the suggested folder with its confidence"> <img src="docs/screenshots/02-review-dark.png" width="49%" alt="Review screen: a receipt, the fields read from it and the suggested folder with its confidence (dark)"></p>
 
 The demo runs under the made-up brand **Tidyslip**, for a made-up bakery called Juniper Lane. Every person, company, tax id, key and document in it is invented.
 
@@ -33,16 +33,16 @@ This repository is a clean rebuild of that product from the problems it had to s
 
 | | |
 |---|---|
-| ![Overview](docs/screenshots/01-overview.png) | ![Re-read diff](docs/screenshots/03-review-reprocess-diff.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/01-overview-dark.png"><img src="docs/screenshots/01-overview.png" alt="Overview"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/03-review-reprocess-diff-dark.png"><img src="docs/screenshots/03-review-reprocess-diff.png" alt="Re-read diff"></picture> |
 | Overview: what needs you today | Re-reading proposes changes; you pick which to keep |
-| ![Files](docs/screenshots/04-files.png) | ![Duplicates](docs/screenshots/05-duplicates.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/04-files-dark.png"><img src="docs/screenshots/04-files.png" alt="Files"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/05-duplicates-dark.png"><img src="docs/screenshots/05-duplicates.png" alt="Duplicates"></picture> |
 | Files with folder tree, drag and drop and preview | Duplicates side by side, proven byte by byte |
-| ![Bills](docs/screenshots/06-bills.png) | ![Payments](docs/screenshots/07-payments.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/06-bills-dark.png"><img src="docs/screenshots/06-bills.png" alt="Bills"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/07-payments-dark.png"><img src="docs/screenshots/07-payments.png" alt="Payments"></picture> |
 | Bills and the receipts that paid them | Payments with the receipt the provider returned |
-| ![Operations](docs/screenshots/08-operations.png) | ![Status](docs/screenshots/09-status.png) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/08-operations-dark.png"><img src="docs/screenshots/08-operations.png" alt="Operations"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/09-status-dark.png"><img src="docs/screenshots/09-status.png" alt="Status"></picture> |
 | Operations center: open problems, attempts, same trace | System status with a single verdict |
-| ![People](docs/screenshots/10-settings-people.png) | ![Dark theme](docs/screenshots/11-dark-review.png) |
-| People and folder access | Dark theme |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/10-settings-people-dark.png"><img src="docs/screenshots/10-settings-people.png" alt="People"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/12-login-dark.png"><img src="docs/screenshots/12-login.png" alt="Sign in"></picture> |
+| People and folder access | Sign in, with the demo accounts |
 
 ## Run it
 
@@ -60,11 +60,13 @@ Open <http://localhost:5610> and sign in with password `receipts-demo` as:
 | `tom@example.com` | Tom, head baker | member, sees Inbox, Phone scans and Suppliers |
 | `ines@example.com` | Ines, the bookkeeper | viewer, sees Utilities, Rent and Taxes |
 
-Postgres is published on port 5611. To drop receipts in by hand, copy a PDF or PNG into the `Inbox` folder inside the `drive` volume; the next sync picks it up.
+Postgres is published on port 5611. If 5610 or 5611 is taken, pick others with `WEB_PORT` and `DB_PORT`, for example `WEB_PORT=8610 DB_PORT=8611 docker compose -p ro-portfolio up --build`. To drop receipts in by hand, copy a PDF or PNG into the `Inbox` folder inside the `drive` volume; the next sync picks it up.
 
 To stop and throw everything away: `docker compose -p ro-portfolio down -v`.
 
 ### Without Docker for the app
+
+You need Node 22.12 or later. If the full stack from above is running, stop its web app and worker first (`docker compose -p ro-portfolio stop web worker`), so only one worker handles the database.
 
 ```bash
 cp .env.example .env            # defaults point at the compose Postgres on 5611
@@ -75,7 +77,7 @@ npm run worker                  # terminal 1: sync, reading, queue, payments
 npm run dev                     # terminal 2: http://localhost:3000
 ```
 
-Other scripts: `npm test` (unit tests), `npm run typecheck`, `npm run lint`, `npm run build`, `npm run smoke` (end-to-end check against a running stack, `BASE_URL` defaults to port 5610), `npm run screenshots` (needs Google Chrome).
+The worker, the database scripts and `npm run dev` all read `.env`. Other scripts: `npm test` (unit tests), `npm run typecheck`, `npm run lint`, `npm run build`, `npm run smoke` (end-to-end check against a running stack, `BASE_URL` defaults to port 5610), `npm run screenshots` (needs Google Chrome; saves every screen in the light and the dark theme).
 
 ## How it works
 
