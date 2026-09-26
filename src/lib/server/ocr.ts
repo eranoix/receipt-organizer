@@ -28,9 +28,8 @@ export function changedFields(before: ExtractedFields, after: ExtractedFields): 
 /**
  * Read queued receipts, a few at a time, in the background.
  *
- * Bulk reprocessing used to run inside the HTTP request and died past ten
- * files; now a request only marks receipts `queued` and this loop drains
- * them at whatever pace the provider allows. A rate-limit answer is not a
+ * A request only marks receipts `queued`; this loop drains them at whatever
+ * pace the provider allows. A rate-limit answer is not a
  * failure: the receipt goes back in line with the provider's Retry-After and
  * the rest of the batch is released instead of hammering it.
  */

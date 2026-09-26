@@ -4,7 +4,7 @@ import { isIP } from 'node:net';
 /**
  * Guard for every URL the server fetches on a user's or provider's behalf.
  *
- * Two lessons shaped it. First, an allowlist alone is not enough: a
+ * First, an allowlist alone is not enough: a
  * permitted hostname can resolve to 169.254.169.254 or 10.0.0.5, so the
  * resolved addresses are checked too. Second, an allowlist that is too
  * exact breaks the day a provider adds a new download host; hosts are

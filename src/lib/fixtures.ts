@@ -118,7 +118,6 @@ export function buildFixtureSet(today = new Date().toISOString().slice(0, 10)): 
     paymentsCenterDue = dueDatesBetween({ dueDay: b.dueDay, startsOn: monthStart(today, 4) }, today, addDays(today, 45))[0] ?? null;
   }
 
-  // Suppliers and one-off purchases.
   const d = (n: number) => addDays(today, -n);
   const sup = (folder: string, payee: string, taxId: string, style: ReceiptStyle, format: 'pdf' | 'png', days: number, cents: number, role: FixtureFile['role'], name?: string, extra: Partial<ReceiptSpec> = {}) =>
     add(folder, name ?? (format === 'png' ? `IMG_${seq++}.png` : `${style}_${d(days)}_${slug(payee)}.pdf`),
@@ -139,7 +138,6 @@ export function buildFixtureSet(today = new Date().toISOString().slice(0, 10)): 
   sup('Equipment', 'Oven Parts Depot', '99.999.999/0001-09', 'card', 'pdf', 80, 97_500, 'filed');
   sup('Archive', ...golden, 'pix', 'pdf', 300, 150_000, 'filed');
 
-  // Waiting in the inboxes.
   sup('Inbox', ...golden, 'pix', 'png', 5, 188_920, 'inbox', undefined, { pixKey: 'orders@golden-mill.example.com' });
   sup('Inbox', ...harbor, 'pix', 'pdf', 3, 38_760, 'collision', 'harbor-dairy-invoice.pdf');
   sup('Inbox', ...boxwell, 'card', 'pdf', 9, 64_310, 'mangled');

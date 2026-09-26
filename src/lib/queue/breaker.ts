@@ -5,7 +5,7 @@
  * persists the state with a compare-and-set on `version`, which is what makes
  * "only one HALF_OPEN trial at a time" hold across several worker processes.
  *
- * Two rules came from real incidents:
+ * Two rules:
  *   - HALF_OPEN admits exactly ONE trial. Letting every waiting caller through
  *     the moment the cooldown ends is a thundering herd against a provider
  *     that has just started to recover.

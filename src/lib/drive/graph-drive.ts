@@ -110,8 +110,6 @@ export class GraphDrive implements DriveAdapter {
     return { expiresAt };
   }
 
-  // ── transport ───────────────────────────────────────────────────────────
-
   private async call<T>(method: string, pathOrUrl: string, body?: unknown, signal?: AbortSignal): Promise<T> {
     const res = await this.raw(method, pathOrUrl, body === undefined ? undefined : JSON.stringify(body), signal, 'application/json');
     return (await res.json()) as T;

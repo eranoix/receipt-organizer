@@ -42,8 +42,6 @@ export class LocalDrive implements DriveAdapter {
   private get feedPath() { return path.join(this.metaDir, 'changes.jsonl'); }
   private now() { return (this.opts.now ?? Date.now)(); }
 
-  // ── public API ──────────────────────────────────────────────────────────
-
   async rootId() {
     return (await this.load()).rootId;
   }
@@ -163,7 +161,6 @@ export class LocalDrive implements DriveAdapter {
     });
   }
 
-  // ── internals ───────────────────────────────────────────────────────────
 
   /**
    * Apply one mutation: fault injection, cancellation check, then the change

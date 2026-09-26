@@ -1,14 +1,7 @@
 /**
- * Telling a permanent failure from a transient one.
- *
- * This decides whether a failed operation is retried or parked in the
- * dead-letter queue, so getting it wrong in either direction costs something
- * real. Retrying a permanent failure burns the whole attempt budget, delays
- * every operation behind it and still fails. Parking a transient one turns a
- * two-second network blip into a chore for a human.
- *
- * The provider's own error code is the most reliable signal, so every error
- * type here carries it forward instead of flattening it into a message.
+ * Decides whether a failed operation is retried or parked in the dead-letter
+ * queue. The provider's own error code is the most reliable signal, so every
+ * error type here carries it forward instead of flattening it into a message.
  */
 
 /** Codes that mean "asking again will get the same answer". */
@@ -60,9 +53,7 @@ export function classifyError(err: unknown): ErrorVerdict {
   }
 
   // Provider error body first: `{ error: { code: 'nameAlreadyExists' } }`.
-  // An earlier design dropped this and classified on the HTTP status alone,
-  // which made a 409 collision look like any other conflict and burned all
-  // six attempts on it.
+  // The HTTP status alone cannot tell a name collision from other conflicts.
   const bodyCode = typeof e.body?.error?.code === 'string' ? e.body.error.code : undefined;
   const code = bodyCode ?? (typeof e.code === 'string' ? e.code : undefined);
   const status = typeof e.status === 'number' ? e.status : undefined;

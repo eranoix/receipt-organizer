@@ -2,8 +2,7 @@ import { q, q1 } from '../db';
 
 /**
  * Defaults live in code, so a missing row can never flip a safety feature
- * off. (A seed once stored duplicate detection as OFF and every screen
- * trusted it.)
+ * off.
  */
 export const SETTING_DEFAULTS = {
   'dedup.enabled': true,

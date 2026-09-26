@@ -77,8 +77,7 @@ export function registerHandlers(queue: OperationQueue): OperationQueue {
     async run(p, { signal }) {
       const id = str(p, 'itemId');
       // Deleting something that is already gone is success, not an error:
-      // the goal state holds. Treating it as a failure once left operations
-      // stuck in the DLQ for files nobody could delete twice.
+      // the goal state holds.
       if (!(await drive().get(id, signal))) {
         await markDeleted([id]);
         return { outcome: 'noop', detail: 'already gone' };

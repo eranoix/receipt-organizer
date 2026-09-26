@@ -93,8 +93,8 @@ export async function tick(ctx: WorkerCtx): Promise<void> {
     await ensureOccurrences();
     await matchAll();
   }
-  // Renew the change subscription well before it lapses; an expired one was
-  // once noticed only because files "stopped arriving".
+  // Renew the change subscription well before it lapses: an expired one fails
+  // silently, files just stop arriving.
   const exp = st?.subscription_expires_at?.getTime() ?? 0;
   if (exp - Date.now() < 12 * 3600_000 && due(ctx, 'subscribe', 60_000)) {
     await enqueue({ kind: 'drive.subscribe', idempotencyKey: `subscribe:${new Date().toISOString().slice(0, 13)}`, payload: { intent: 'subscribe' } });

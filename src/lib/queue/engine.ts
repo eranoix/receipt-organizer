@@ -1,24 +1,10 @@
 /**
- * The operation queue.
- *
- * Every change to the drive (move, rename, create folder, delete, upload) is
- * submitted here instead of being called directly. The queue gives each one:
- *
- *   - an identity (kind + idempotency key), so a double click or a retried
- *     HTTP request produces one operation, not two;
- *   - retries with capped exponential backoff for transient failures, and an
- *     immediate stop for permanent ones;
- *   - a deadline budget: no attempt starts without enough time left, the
- *     attempt is cancelled through an AbortSignal when time runs out, and no
- *     retry is scheduled past the deadline;
- *   - a circuit breaker per provider with a single HALF_OPEN trial;
- *   - a dead-letter queue (status `dead`) with replay and discard;
- *   - a convergence loop that asks the provider whether the end state already
- *     holds, and settles operations whose effect happened anyway;
- *   - a startup self-heal that reclaims work from a worker that died.
- *
- * Ideas and vocabulary follow my reliable-task-queue library; this version
- * adds the breaker, the deadline budget and the pluggable store.
+ * The operation queue. Every drive change (move, rename, create folder, delete,
+ * upload) goes through here and gets: an idempotency key, capped exponential
+ * retries for transient failures, a deadline budget enforced through an
+ * AbortSignal, a circuit breaker per provider with a single HALF_OPEN trial,
+ * a dead-letter queue with replay and discard, a convergence loop that settles
+ * operations whose effect happened anyway, and a startup self-heal.
  */
 
 import { admit, record, rebuild, initialBreaker, DEFAULT_BREAKER, type BreakerConfig, type BreakerState, type CallResult } from './breaker';
@@ -231,8 +217,6 @@ export class OperationQueue {
     return this.o.jitter(Math.min(this.o.backoffBaseMs * 2 ** (attempt - 1), this.o.backoffCapMs));
   }
 
-  // ── dead-letter queue ───────────────────────────────────────────────────
-
   /**
    * Put a dead operation back in line. `payloadPatch` lets a human fix what
    * made it fail permanently, e.g. choose a new name after a collision.
@@ -251,8 +235,6 @@ export class OperationQueue {
   async discard(id: number): Promise<boolean> {
     return this.store.update(id, { status: 'discarded', leaseExpiresAt: null, finished: true }, this.now(), 'dead');
   }
-
-  // ── convergence and self-heal ───────────────────────────────────────────
 
   /**
    * Ask the provider whether the desired end state already holds for work we
@@ -331,8 +313,6 @@ export class OperationQueue {
   async breakerState(name: string): Promise<BreakerState> {
     return (await this.store.loadBreaker(name)) ?? initialBreaker();
   }
-
-  // ── internals ───────────────────────────────────────────────────────────
 
   private async kill(op: Operation, reason: 'permanent' | 'exhausted' | 'deadline', message: string, code: string, expect: 'running' | 'pending' = 'running'): Promise<boolean> {
     const ok = await this.store.update(op.id, {
