@@ -1,5 +1,7 @@
 # receipt-organizer
 
+[![CI](https://github.com/eranoix/receipt-organizer/actions/workflows/ci.yml/badge.svg)](https://github.com/eranoix/receipt-organizer/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![node 22.12+](https://img.shields.io/badge/node-22.12%2B-339933?logo=nodedotjs&logoColor=white) ![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white) ![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white) ![docker compose one command](https://img.shields.io/badge/docker%20compose-one%20command-2496ED?logo=docker&logoColor=white)
+
 **Organizes payment receipts and bills from a cloud drive: it reads them, files them, spots duplicates and tracks what has been paid.**
 
 *In plain words:* A small business (or a busy household) ends up with receipts everywhere: PDFs from the bank app, photos taken on a phone, boletos, card slips. This app watches a folder in your cloud drive where you drop them. It reads each one (who was paid, how much, when, how), suggests the folder it belongs in and waits for you to say yes. It notices when the same receipt arrives twice and proves it before anything is deleted. It knows your monthly bills, so it can tell you which ones are paid and which are late, and it can even pay a bill and file the receipt that comes back. Nothing is moved, deleted or paid unless a person asks for it.
