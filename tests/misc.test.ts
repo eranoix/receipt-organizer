@@ -9,14 +9,14 @@ import { pathInScope } from '@/lib/scope';
 
 describe('zip', () => {
   it('writes a valid stored archive with UTF-8 names and de-duplicated entries', () => {
-    const z = buildZip([{ name: 'Rent/a.pdf', data: Buffer.from('aaa') }, { name: 'Rent/a.pdf', data: Buffer.from('bbb') }, { name: 'Água.png', data: Buffer.from('c') }]);
+    const z = buildZip([{ name: 'Rent/a.pdf', data: Buffer.from('aaa') }, { name: 'Rent/a.pdf', data: Buffer.from('bbb') }, { name: 'Zürich-Straße.png', data: Buffer.from('c') }]);
     expect(z.readUInt32LE(0)).toBe(0x04034b50);
     const end = z.length - 22;
     expect(z.readUInt32LE(end)).toBe(0x06054b50);
     expect(z.readUInt16LE(end + 10)).toBe(3);
     const text = z.toString('utf8');
     expect(text).toContain('Rent/a (2).pdf');
-    expect(text).toContain('Água.png');
+    expect(text).toContain('Zürich-Straße.png');
     expect(z.readUInt32LE(14)).toBe(crc32(Buffer.from('aaa')));
   });
 
