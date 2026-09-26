@@ -1,4 +1,8 @@
-/** Lowercase, strip accents and punctuation: the key payees are compared by. */
+/**
+ * Lowercase, strip accents, company-type suffixes and punctuation: the key payees
+ * are compared by. The suffix list covers the English forms and the Brazilian ones
+ * that appear on real payee names (ltda, eireli, me, sa), which are matched here, not written.
+ */
 export function normalizeKey(s: string | null | undefined): string {
   return (s ?? '')
     .normalize('NFD')
