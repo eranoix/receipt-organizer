@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "smoke": "tsx --env-file-if-exists=.env scripts/smoke.ts",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "next": "15.5.26",
