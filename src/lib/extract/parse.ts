@@ -25,11 +25,6 @@ export function titleCase(s: string): string {
   return s.toLowerCase().replace(/\b([a-z])/g, (c) => c.toUpperCase()).replace(/\bCo-Op\b/g, 'Co-op');
 }
 
-/**
- * Turn a receipt's text into fields. Labelled values score 1.0, values found
- * by a looser fallback score 0.6, missing ones 0; the document confidence is
- * the mean over the four fields that drive filing and bill matching.
- */
 export function parseReceiptText(text: string): ParseResult {
   const t = text.replace(/\r/g, '');
   const per: Record<string, number> = {};

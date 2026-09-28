@@ -25,14 +25,6 @@ export function changedFields(before: ExtractedFields, after: ExtractedFields): 
   return FIELD_KEYS.filter((k) => (before[k] ?? null) !== (after[k] ?? null));
 }
 
-/**
- * Read queued receipts, a few at a time, in the background.
- *
- * A request only marks receipts `queued`; this loop drains them at whatever
- * pace the provider allows. A rate-limit answer is not a
- * failure: the receipt goes back in line with the provider's Retry-After and
- * the rest of the batch is released instead of hammering it.
- */
 export async function drainOcr(limit = 5): Promise<{ read: number; rateLimited: boolean }> {
   const claimed = await q<Claimed>(
     `UPDATE receipts SET ocr_state = 'running', updated_at = now()
@@ -75,8 +67,6 @@ async function readOne(r: Claimed): Promise<'ok' | 'failed' | 'rate_limited' | '
     const hadFields = r.payee != null || r.amount_cents != null || r.payment_date != null;
 
     if (r.reprocess && hadFields) {
-      // A reprocess never overwrites silently. Identical output is recorded
-      // as a plain run; any difference becomes a proposal a person reviews.
       const diff = changedFields(before, res.fields);
       const status = diff.length ? 'proposed' : 'ok';
       const run = await q1<{ id: number }>(
@@ -88,7 +78,6 @@ async function readOne(r: Claimed): Promise<'ok' | 'failed' | 'rate_limited' | '
       return 'ok';
     }
 
-    // First reading: take the fields, except any a person already typed in.
     const sets: string[] = [];
     const vals: unknown[] = [r.file_id];
     for (const k of FIELD_KEYS) {

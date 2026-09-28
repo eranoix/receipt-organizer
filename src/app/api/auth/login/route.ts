@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
   try { body = await req.json(); } catch { /* handled below */ }
   const email = String(body.email ?? '').trim().toLowerCase();
   const user = await q1<{ id: number; name: string; password_hash: string; disabled: boolean }>('SELECT id, name, password_hash, disabled FROM users WHERE email = $1', [email]);
-  // Same answer, same work, whether the email exists or not.
   const ok = user && !user.disabled ? await verifyPassword(String(body.password ?? ''), user.password_hash) : (await verifyPassword('x', 'scrypt$16384$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='), false);
   if (!ok || !user) return NextResponse.json({ error: 'Email or password is not right' }, { status: 401 });
 

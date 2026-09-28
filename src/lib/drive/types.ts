@@ -1,11 +1,3 @@
-/**
- * What the app needs from a cloud drive, and nothing more.
- *
- * Every mutating call takes an AbortSignal and must honour it: the queue
- * cancels attempts at their deadline, and an adapter that ignores the signal
- * can apply a move after the queue has already recorded it as timed out.
- */
-
 export interface DriveItem {
   id: string;
   parentId: string | null;
@@ -21,9 +13,7 @@ export type DriveChange = { type: 'upsert'; item: DriveItem } | { type: 'delete'
 
 export interface DeltaPage {
   changes: DriveChange[];
-  /** Opaque; pass it back to get only what changed since. */
   cursor: string;
-  /** True when the cursor was unknown/expired and this page is a full listing. */
   reset: boolean;
 }
 
@@ -47,11 +37,9 @@ export interface DriveAdapter {
   childByName(parentId: string, name: string, signal?: AbortSignal): Promise<DriveItem | null>;
   read(id: string, signal?: AbortSignal): Promise<Buffer>;
   createFolder(parentId: string, name: string, signal?: AbortSignal): Promise<DriveItem>;
-  /** Move and/or rename. Fails with nameAlreadyExists instead of overwriting. */
   move(id: string, parentId: string, name: string, signal?: AbortSignal): Promise<DriveItem>;
   delete(id: string, signal?: AbortSignal): Promise<void>;
   upload(parentId: string, name: string, bytes: Buffer, signal?: AbortSignal): Promise<DriveItem>;
-  /** Renew the change-notification subscription; returns its new expiry. */
   subscribe(signal?: AbortSignal): Promise<{ expiresAt: string }>;
 }
 

@@ -1,5 +1,3 @@
-// Bundle the worker, migrator, seed and smoke scripts into dist/ so the
-// production image runs them with plain `node`, without tsx or dev deps.
 import { build } from 'esbuild';
 
 await build({

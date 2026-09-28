@@ -3,11 +3,6 @@ import { api, HttpError, readJson } from '@/lib/server/api';
 import { logEvent } from '@/lib/server/events';
 import { createFolder, rootFolderId } from '@/lib/server/files';
 
-/**
- * Inboxes: register an existing folder, or create a new one through the
- * queue (it becomes an inbox the moment the drive confirms it). Removing an
- * inbox only unregisters it; the folder and its files stay.
- */
 export const POST = api({ role: 'admin' }, async ({ req, user, traceId }) => {
   const b = await readJson<{ folderId?: string; name?: string; label?: string }>(req);
   const label = String(b.label ?? b.name ?? '').trim();

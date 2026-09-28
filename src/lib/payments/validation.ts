@@ -1,9 +1,3 @@
-/**
- * Validation for outgoing payments. Formats follow the Brazilian rails the
- * app's receipts come from: Pix keys, TED with a 3-digit COMPE bank code, and
- * boleto digitable lines (47 digits, or 48 for utility collections).
- */
-
 export type PaymentMethodOut = 'pix' | 'transfer' | 'boleto';
 
 export interface PaymentInput {
@@ -52,7 +46,6 @@ export function validatePayment(raw: Partial<PaymentInput>): Validation {
     else { details.pixKey = raw.pixKey!.trim(); details.pixKeyKind = kind; }
   }
   if (method === 'transfer') {
-    // COMPE codes are three digits, not the 8-digit ISPB.
     if (!/^\d{3}$/.test(raw.bankCode ?? '')) errors.bankCode = 'Bank code has 3 digits';
     if (!/^\d{4}$/.test(raw.branch ?? '')) errors.branch = 'Branch has 4 digits';
     if (!/^\d{3,12}-?[\dxX]$/.test(raw.account ?? '')) errors.account = 'Account looks like 12345-6';

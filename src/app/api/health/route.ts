@@ -3,7 +3,6 @@ import { q1 } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-/** Unauthenticated liveness for the container healthcheck. Reveals nothing but "up". */
 export async function GET() {
   try {
     await q1('SELECT 1');

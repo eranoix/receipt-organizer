@@ -1,15 +1,11 @@
 import pg from 'pg';
 
-// Dates stay strings ("2026-08-05") and counts come back as numbers. Without
-// this, `count(*)` arrives as a string and a DATE shifts by the server's
-// time zone on its way into a JS Date.
 pg.types.setTypeParser(1082, (v: string) => v);
 pg.types.setTypeParser(20, (v: string) => Number(v));
 pg.types.setTypeParser(1700, (v: string) => Number(v));
 
 export type Row = Record<string, unknown>;
 
-/** Anything that can run a query: the pool or a client inside a transaction. */
 export interface Db {
   query<T extends pg.QueryResultRow = Row>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>>;
 }

@@ -11,18 +11,17 @@ function chunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([len, td, crc]);
 }
 
-/** Encode an 8-bit grayscale bitmap as PNG, with optional tEXt chunks. */
 export function encodeGrayPng(width: number, height: number, pixels: Uint8Array, text: Record<string, string> = {}): Buffer {
   const raw = Buffer.alloc((width + 1) * height);
   for (let y = 0; y < height; y += 1) {
-    raw[y * (width + 1)] = 0; // filter: none
+    raw[y * (width + 1)] = 0;
     raw.set(pixels.subarray(y * width, (y + 1) * width), y * (width + 1) + 1);
   }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 0; // grayscale
+  ihdr[8] = 8;
+  ihdr[9] = 0;
   const texts = Object.entries(text).map(([k, v]) => chunk('tEXt', Buffer.concat([Buffer.from(k, 'latin1'), Buffer.from([0]), Buffer.from(v, 'latin1')])));
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -33,7 +32,6 @@ export function encodeGrayPng(width: number, height: number, pixels: Uint8Array,
   ]);
 }
 
-/** Read tEXt chunks and dimensions from a PNG. Returns null if it is not a PNG. */
 export function readPngText(buf: Buffer): { width: number; height: number; text: Record<string, string> } | null {
   if (buf.length < 8 || buf.readUInt32BE(0) !== 0x89504e47) return null;
   const text: Record<string, string> = {};
@@ -58,11 +56,6 @@ export function readPngText(buf: Buffer): { width: number; height: number; text:
 
 export interface RasterLine { text: string; invert?: boolean; rule?: boolean }
 
-/**
- * Draw lines of text like a thermal printer would. Each character is the 5x7
- * glyph scaled up, on off-white paper with a little noise so it does not
- * look like a screenshot.
- */
 export function rasterizeReceipt(lines: RasterLine[], opts: { cols?: number; scale?: number; seed?: number } = {}): { width: number; height: number; pixels: Uint8Array } {
   const cols = opts.cols ?? 34;
   const scale = opts.scale ?? 2;

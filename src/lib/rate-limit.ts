@@ -1,8 +1,3 @@
-/**
- * Sliding-window rate limiter kept in memory. One web process serves this
- * app, so a shared store would add a dependency without adding protection;
- * the interface is small enough to back with Postgres or Redis later.
- */
 export class RateLimiter {
   private readonly hits = new Map<string, number[]>();
 

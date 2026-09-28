@@ -9,7 +9,6 @@ export function driveRoot(): string {
   return path.resolve(process.env.DRIVE_ROOT ?? './.data/drive');
 }
 
-/** The configured drive, one instance per process. */
 export function drive(): DriveAdapter {
   if (!g.__roDrive) {
     if (process.env.DRIVE_ADAPTER === 'graph') {

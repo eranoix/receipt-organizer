@@ -18,7 +18,6 @@ export interface SessionUser {
   statusText: string;
   theme: 'system' | 'light' | 'dark';
   notify: { dlq: boolean; duplicates: boolean; bills: boolean };
-  /** Folder paths this user may see. ['/'] for admins. */
   scopePaths: string[];
 }
 

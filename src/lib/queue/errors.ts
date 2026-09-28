@@ -1,12 +1,5 @@
-/**
- * Decides whether a failed operation is retried or parked in the dead-letter
- * queue. The provider's own error code is the most reliable signal, so every
- * error type here carries it forward instead of flattening it into a message.
- */
-
-/** Codes that mean "asking again will get the same answer". */
 export const PERMANENT_CODES = new Set([
-  'nameAlreadyExists', // a name collision never resolves by waiting
+  'nameAlreadyExists',
   'itemNotFound',
   'accessDenied',
   'invalidRequest',
@@ -34,7 +27,6 @@ export interface ErrorVerdict {
   permanent: boolean;
   code: string;
   message: string;
-  /** A server-provided wait (Retry-After). Respected over our own backoff when longer. */
   retryAfterMs?: number;
 }
 
@@ -52,8 +44,6 @@ export function classifyError(err: unknown): ErrorVerdict {
     return { permanent: false, code: 'timeout', message: message || 'timed out' };
   }
 
-  // Provider error body first: `{ error: { code: 'nameAlreadyExists' } }`.
-  // The HTTP status alone cannot tell a name collision from other conflicts.
   const bodyCode = typeof e.body?.error?.code === 'string' ? e.body.error.code : undefined;
   const code = bodyCode ?? (typeof e.code === 'string' ? e.code : undefined);
   const status = typeof e.status === 'number' ? e.status : undefined;
@@ -70,8 +60,5 @@ export function classifyError(err: unknown): ErrorVerdict {
     if (status >= 400) return { permanent: true, code: code ?? `http_${status}`, message };
   }
 
-  // Unknown shapes are treated as transient: the attempt budget and the
-  // deadline still bound them, and a human sees them in the DLQ if they never
-  // clear. Guessing "permanent" would drop work on the floor.
   return { permanent: false, code: code ?? 'unknown', message, retryAfterMs };
 }

@@ -1,7 +1,6 @@
 import type { BreakerState } from './breaker';
 import type { AttemptRecord, NewOperation, Operation, OperationPatch, OpStatus, QueueStore } from './types';
 
-/** In-memory store with the same semantics as the Postgres one. Used by tests and demos. */
 export class MemoryQueueStore implements QueueStore {
   readonly ops = new Map<number, Operation>();
   readonly attempts: AttemptRecord[] = [];

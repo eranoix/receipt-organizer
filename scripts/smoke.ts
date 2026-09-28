@@ -1,10 +1,3 @@
-/**
- * Smoke test of the main flow against a running stack (docker compose or
- * `npm run dev` + `npm run worker`). It only uses the public HTTP API, the
- * same way the browser does.
- *
- *   BASE_URL=http://localhost:5610 npm run smoke
- */
 const BASE = process.env.BASE_URL ?? 'http://localhost:5610';
 const PASSWORD = process.env.DEMO_PASSWORD ?? 'receipts-demo';
 let failures = 0;
@@ -57,7 +50,6 @@ async function main() {
 
   const lia = client(await login('lia@example.com'));
 
-  // 1. A suggested receipt is confirmed and actually moves on the drive.
   const review = await lia<{ rows: { file_id: string; name: string; stage: string; suggestion_folder_id: string; suggestion_path: string }[] }>('GET', '/api/review?stage=suggested');
   const pick = review.json.rows.find((r) => r.stage === 'suggested');
   ok(pick, 'review queue has a suggested receipt', review.json);
@@ -75,20 +67,17 @@ async function main() {
       'operations center correlates the audit entry and the queue operation by trace', logs.json.rows.map((r) => r.action));
   }
 
-  // 2. Duplicates were caught at intake and there is dead-letter work to decide.
   const dups = await lia<{ rows: { status: string }[] }>('GET', '/api/duplicates');
   ok(dups.json.rows.some((r) => r.status === 'suspected' || r.status === 'proven'), 'duplicates are waiting for a decision');
   const dlq = await lia<{ total: number }>('GET', '/api/ops/logs?state=open&source=queue');
   ok(dlq.json.total > 0, `dead-letter queue has ${dlq.json.total} item(s)`);
 
-  // 3. ZIP download.
   const tree = await lia<{ folders: { id: string; path: string }[] }>('GET', '/api/files/tree');
   const util = tree.json.folders.find((f) => f.path === '/Utilities/Electricity');
   const zip = await lia('POST', '/api/files/zip', { ids: [util?.id] });
   const bytes = Buffer.from(await zip.res.arrayBuffer());
   ok(zip.status === 200 && bytes.subarray(0, 2).toString() === 'PK', `ZIP download works (${zip.res.headers.get('x-file-count')} files)`);
 
-  // 4. Status verdict.
   const status = await lia<{ level: string; headline: string; checks: unknown[] }>('GET', '/api/status');
   ok(['operational', 'degraded', 'outage'].includes(status.json.level) && status.json.checks.length > 5, `status verdict: ${status.json.level}`);
   const hb = await until('worker heartbeat', async () => {
@@ -97,7 +86,6 @@ async function main() {
   }, 20_000);
   ok(hb, 'worker is alive');
 
-  // 5. Scoped access: a member cannot open a file outside their folders.
   const tom = client(await login('tom@example.com'));
   const elec = await lia<{ items: { id: string; isFolder: boolean }[] }>('GET', `/api/files?folder=${util?.id}`);
   const secret = elec.json.items.find((i) => !i.isFolder);
@@ -107,7 +95,6 @@ async function main() {
   const viewerWrite = await ines('POST', '/api/review/confirm', { items: [{ fileId: 'x' }] });
   ok(viewerWrite.status === 403, 'viewer cannot file receipts', viewerWrite.status);
 
-  // 6. Pay an open bill; the receipt comes back into the inbox and pays the bill.
   const pay = await lia<{ openBills: { id: number; name: string; payee: string; expected_cents: number }[] }>('GET', '/api/payments');
   const bill = pay.json.openBills[0];
   ok(bill, 'there is an open bill to pay');
@@ -124,7 +111,6 @@ async function main() {
     ok(settled, `${bill.name} is marked paid by the receipt the provider returned`);
   }
 
-  // 7. Login rate limit (last: it locks this IP out for a minute).
   let limited = false;
   for (let i = 0; i < 12 && !limited; i += 1) {
     const r = await fetch(`${BASE}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: 'lia@example.com', password: 'wrong' }) });

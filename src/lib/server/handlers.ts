@@ -1,13 +1,3 @@
-/**
- * What each queued operation does, and the bookkeeping around it.
- *
- * Handlers answer "did I make this change, or was it already there?"
- * (`applied` vs `noop`): on any attempt after the first they look before
- * acting, because the previous attempt may have landed right before the
- * connection dropped. Each successful change is written into the mirror at
- * once, so the screen does not wait for the next delta to catch up.
- */
-
 import { q, q1 } from '../db';
 import { drive } from '../drive';
 import type { OperationQueue, QueueHooks } from '../queue/engine';
@@ -76,8 +66,6 @@ export function registerHandlers(queue: OperationQueue): OperationQueue {
     breaker: 'drive',
     async run(p, { signal }) {
       const id = str(p, 'itemId');
-      // Deleting something that is already gone is success, not an error:
-      // the goal state holds.
       if (!(await drive().get(id, signal))) {
         await markDeleted([id]);
         return { outcome: 'noop', detail: 'already gone' };
@@ -149,8 +137,6 @@ async function afterFolderCreated(p: P, folderId: string) {
 async function afterUpload(p: P, fileId: string) {
   if (!p.paymentId) return;
   await q('UPDATE payments SET receipt_file_id = $2 WHERE id = $1', [p.paymentId, fileId]);
-  // A payment made for a specific bill pays that bill: no guessing by date
-  // and amount when we already know which one it was.
   await q(`UPDATE bill_occurrences o SET status = 'paid', receipt_file_id = $2, match_kind = 'auto', match_score = 1, matched_at = now()
              FROM payments p WHERE p.id = $1 AND o.id = p.bill_occurrence_id AND o.status = 'open'`, [p.paymentId, fileId]);
 }

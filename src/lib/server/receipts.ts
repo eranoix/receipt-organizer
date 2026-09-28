@@ -81,7 +81,6 @@ function coerce(k: keyof ExtractedFields, v: unknown): unknown {
   }
 }
 
-/** A person's edit wins over any later automatic reading of that field. */
 export async function updateFields(fileId: string, patch: Partial<Record<keyof ExtractedFields, unknown>>, user: SessionUser, traceId: string) {
   const it = await itemForUser(fileId, user);
   if (user.role === 'viewer') throw new HttpError(403, 'Viewers cannot edit');
@@ -133,10 +132,6 @@ export async function decideProposal(fileId: string, accept: boolean, fields: st
   return { applied: take };
 }
 
-/**
- * Confirm filings. The suggestion is only a suggestion: nothing moves until
- * a person confirms, and the move itself goes through the queue.
- */
 export async function confirmFiling(items: { fileId: string; folderId?: string | null }[], user: SessionUser, traceId: string) {
   if (user.role === 'viewer') throw new HttpError(403, 'Viewers cannot file receipts');
   const queued: { fileId: string; operationId: number }[] = [];

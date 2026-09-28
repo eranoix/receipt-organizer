@@ -15,9 +15,7 @@ export interface Ctx<P> {
 }
 
 interface Opts {
-  /** Minimum role. Defaults to viewer for reads and member for writes. */
   role?: Role;
-  /** Named rate limit: [name, limit, windowMs]. Writes get a default one. */
   limit?: [string, number, number];
 }
 
@@ -31,12 +29,6 @@ export function tooMany(retryAfterMs: number) {
   });
 }
 
-/**
- * Every API route goes through here: session, role, same-origin check on
- * writes, rate limit, a trace id, and uniform JSON errors. Keeping it in one
- * place is what makes "every route is protected" a property of the code
- * rather than of reviewer attention.
- */
 export function api<P = Record<string, string>>(opts: Opts, fn: (ctx: Ctx<P>) => Promise<unknown>) {
   return async (req: NextRequest, context: { params: Promise<P> }): Promise<Response> => {
     const traceId = req.headers.get('x-trace-id')?.slice(0, 40).replace(/[^\w-]/g, '') || newTraceId();

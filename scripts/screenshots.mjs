@@ -1,8 +1,3 @@
-// Capture the README screenshots with headless Chrome over the DevTools
-// protocol (Node 22 has WebSocket built in, so no extra dependency). Every
-// screen is saved twice: <name>.png in the light theme, <name>-dark.png in the
-// dark one, at device scale factor 2.
-//   BASE_URL=http://localhost:5610 CHROME=google-chrome node scripts/screenshots.mjs
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

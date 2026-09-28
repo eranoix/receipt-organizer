@@ -4,10 +4,6 @@ import { itemForUser } from '@/lib/server/files';
 
 const SAFE_INLINE = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp']);
 
-/**
- * File bytes, behind the same scope check as every listing. Out-of-scope ids
- * answer 404, not 403, so ids cannot be probed.
- */
 export const GET = api<{ id: string }>({ limit: ['content', 300, 60_000] }, async ({ req, user, params }) => {
   const it = await itemForUser(params.id, user);
   if (it.is_folder) throw new HttpError(400, 'That is a folder');

@@ -1,20 +1,3 @@
-/**
- * Full reconciliation between the mirror and a complete listing of the drive.
- *
- * Delta sync is the fast path; this is the safety net for when a delta was
- * missed, a cursor expired or a change arrived out of order. It produces a
- * plan, not side effects, so the dangerous part (what gets removed from the
- * mirror) can be tested on its own.
- *
- * Removal is guarded twice:
- *   - registered inbox folders are never pruned by reconciliation, even if the
- *     listing does not show them; losing an inbox silently is how receipts
- *     stop being read without anyone noticing;
- *   - an item first seen after the listing started cannot be judged by that
- *     listing. A folder created while a slow listing was paging looks
- *     "orphaned" to it and would otherwise be deleted from the mirror.
- */
-
 import type { DriveItem } from '../drive/types';
 
 export interface MirrorItem {
@@ -29,7 +12,6 @@ export interface MirrorItem {
 
 export interface ReconcilePlan {
   upserts: DriveItem[];
-  /** Subset of upserts whose parent or name changed. */
   moved: string[];
   removals: string[];
   kept: { id: string; reason: 'inbox' | 'too_new' }[];
@@ -67,7 +49,6 @@ export function planReconcile(
   return plan;
 }
 
-/** Full path of every item from its parent chain. Cycles and orphans get a best-effort path. */
 export function computePaths(items: { id: string; parentId: string | null; name: string }[]): Map<string, string> {
   const byId = new Map(items.map((i) => [i.id, i]));
   const out = new Map<string, string>();

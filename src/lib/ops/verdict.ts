@@ -10,11 +10,6 @@ export interface Check {
 
 export interface Verdict { level: 'operational' | 'degraded' | 'outage'; headline: string; counts: Record<CheckStatus, number> }
 
-/**
- * One sentence on top of the status page. Several green lights and one red
- * one read as "mostly fine" when laid out as a grid, so the page leads with
- * the worst thing, in words.
- */
 export function verdict(checks: Check[]): Verdict {
   const counts = { ok: 0, warn: 0, fail: 0 } as Record<CheckStatus, number>;
   for (const c of checks) counts[c.status] += 1;

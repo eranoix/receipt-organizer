@@ -1,17 +1,11 @@
 import { inflateSync } from 'node:zlib';
 
 function esc(s: string): string {
-  // Standard 14 fonts use WinAnsi; keep to printable ASCII so the text layer
-  // round-trips exactly.
   return s.replace(/[^\x20-\x7e]/g, '?').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
 export interface PdfLine { text: string; bold?: boolean; size?: number; invert?: boolean; rule?: boolean }
 
-/**
- * A single-page PDF with real text (not an image), so a reader can extract
- * the text layer exactly. Small, dependency-free and deterministic.
- */
 export function buildReceiptPdf(lines: PdfLine[], title: string): Buffer {
   const width = 300;
   const lineH = 14;
@@ -52,11 +46,6 @@ export function buildReceiptPdf(lines: PdfLine[], title: string): Buffer {
   return Buffer.from(out, 'latin1');
 }
 
-/**
- * Pull the text shown with Tj/TJ out of every content stream, one line per
- * text object. Handles plain and Flate-compressed streams, which covers PDFs
- * exported by most banking apps; scanned PDFs have no text layer at all.
- */
 export function extractPdfText(buf: Buffer): string | null {
   const src = buf.toString('latin1');
   if (!src.startsWith('%PDF')) return null;

@@ -1,5 +1,3 @@
--- People, sessions, preferences and the small key/value settings store.
-
 CREATE TABLE users (
   id             int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   email          text NOT NULL UNIQUE,
@@ -17,8 +15,6 @@ CREATE TABLE users (
   last_login_at  timestamptz
 );
 
--- Only the hash of the session token is stored: a database dump does not
--- hand out live sessions.
 CREATE TABLE sessions (
   token_hash  text PRIMARY KEY,
   user_id     int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -28,7 +24,6 @@ CREATE TABLE sessions (
 );
 CREATE INDEX sessions_user_idx ON sessions (user_id);
 
--- Folder roots a member or viewer may see. Admins ignore this table.
 CREATE TABLE user_folder_scopes (
   user_id    int NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   folder_id  text NOT NULL,
@@ -54,7 +49,6 @@ CREATE TABLE settings (
   updated_by  int REFERENCES users(id) ON DELETE SET NULL
 );
 
--- The worker writes here every loop; the status page reads it.
 CREATE TABLE worker_heartbeats (
   name        text PRIMARY KEY,
   started_at  timestamptz NOT NULL,

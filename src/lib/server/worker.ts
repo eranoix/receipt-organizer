@@ -1,9 +1,3 @@
-/**
- * The worker loop. One process, several small duties on their own cadence;
- * each one is bounded so a slow duty cannot starve the others, and each one
- * is safe to run again after a crash.
- */
-
 import os from 'node:os';
 import { q, q1 } from '../db';
 import type { OperationQueue } from '../queue/engine';
@@ -36,11 +30,6 @@ export function createWorker(opts: { backoffBaseMs?: number } = {}): WorkerCtx {
   };
 }
 
-/**
- * Repair what a previous worker left behind: leased operations, a HALF_OPEN
- * breaker waiting on a dead trial, receipts stuck "running", a sync lock
- * with no heartbeat. Run once, before the first tick.
- */
 export async function selfHeal(ctx: WorkerCtx): Promise<Record<string, unknown>> {
   await ensureSyncState();
   const heal = await ctx.queue.selfHeal();
@@ -93,8 +82,6 @@ export async function tick(ctx: WorkerCtx): Promise<void> {
     await ensureOccurrences();
     await matchAll();
   }
-  // Renew the change subscription well before it lapses: an expired one fails
-  // silently, files just stop arriving.
   const exp = st?.subscription_expires_at?.getTime() ?? 0;
   if (exp - Date.now() < 12 * 3600_000 && due(ctx, 'subscribe', 60_000)) {
     await enqueue({ kind: 'drive.subscribe', idempotencyKey: `subscribe:${new Date().toISOString().slice(0, 13)}`, payload: { intent: 'subscribe' } });

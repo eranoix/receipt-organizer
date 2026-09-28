@@ -2,11 +2,6 @@ import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
-/**
- * Security headers are set here rather than per route so nothing can forget
- * them. The CSP allows inline scripts because the App Router streams inline
- * bootstrap scripts; everything else is locked to the same origin.
- */
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,

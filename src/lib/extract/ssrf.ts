@@ -1,17 +1,6 @@
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 
-/**
- * Guard for every URL the server fetches on a user's or provider's behalf.
- *
- * First, an allowlist alone is not enough: a
- * permitted hostname can resolve to 169.254.169.254 or 10.0.0.5, so the
- * resolved addresses are checked too. Second, an allowlist that is too
- * exact breaks the day a provider adds a new download host; hosts are
- * matched by suffix (".example.com"), and a refusal fails that one call with
- * a clear message instead of taking a whole batch down with it.
- */
-
 export class BlockedUrlError extends Error {
   override readonly name = 'BlockedUrlError';
 }

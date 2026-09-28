@@ -59,7 +59,6 @@ export function Operations({ isAdmin }: { isAdmin: boolean }) {
     setSelected(new Set());
   }, [router, sp]);
 
-  // A trace or subject filter is about the whole story, problems or not.
   const effectiveState = trace || subject ? (sp.get('state') ?? 'all') : state;
   const qs = new URLSearchParams({ state: effectiveState, page: String(page), pageSize: '25' });
   if (source) qs.set('source', source);

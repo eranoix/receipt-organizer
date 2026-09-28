@@ -15,11 +15,6 @@ export const GET = api({}, async ({ user }) => {
   return { rows: visible, jobs };
 });
 
-/**
- * Checking and deleting are separate steps on purpose: "verify" only reads
- * and compares, "delete" starts a job that re-proves every file before it
- * queues the deletion.
- */
 export const POST = api({}, async ({ req, user, traceId }) => {
   const b = await readJson<{ action?: 'verify' | 'keep' | 'delete'; ids?: number[] }>(req);
   const ids = (b.ids ?? []).map(Number).filter(Number.isInteger).slice(0, 200);

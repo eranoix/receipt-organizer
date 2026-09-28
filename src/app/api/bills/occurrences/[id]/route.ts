@@ -2,7 +2,6 @@ import { q, q1 } from '@/lib/db';
 import { api, HttpError, readJson } from '@/lib/server/api';
 import { logEvent } from '@/lib/server/events';
 
-/** Manual overrides: unmatch a wrong match, skip a month, or match by hand. */
 export const POST = api<{ id: string }>({}, async ({ req, user, params, traceId }) => {
   const b = await readJson<{ action?: 'unmatch' | 'skip' | 'reopen' | 'match'; fileId?: string }>(req);
   const id = Number(params.id);

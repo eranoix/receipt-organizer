@@ -1,9 +1,3 @@
-/**
- * Renders the fictional receipts used by the seed, the tests and the mock
- * payment provider. Every document says it is a demo, every tax id is
- * all-nines (invalid by construction) and every bank is "999".
- */
-
 import { buildReceiptPdf, type PdfLine } from './pdf';
 import { encodeGrayPng, rasterizeReceipt } from './png';
 
@@ -14,16 +8,13 @@ export interface ReceiptSpec {
   payee: string;
   payeeTaxId?: string;
   amountCents: number;
-  /** YYYY-MM-DD */
   paidOn: string;
   time?: string;
   dueOn?: string;
   payer?: string;
   reference?: string;
   pixKey?: string;
-  /** Leave the payee line out, the way a torn or badly scanned slip would. */
   omitPayee?: boolean;
-  /** A photo with no readable text layer at all. */
   noTextLayer?: boolean;
   seed?: number;
 }

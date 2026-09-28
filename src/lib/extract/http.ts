@@ -1,13 +1,6 @@
 import { assertSafeUrl } from './ssrf';
 import { RateLimitedError, UnreadableError, type ExtractedFields, type ExtractInput, type ExtractResult, type Extractor } from './types';
 
-/**
- * Adapter for an external OCR/LLM extraction service. Posts the document and
- * expects `{ fields, confidence, text }` back. The endpoint passes the SSRF
- * guard on every call (DNS can change under us), 429 becomes a
- * RateLimitedError carrying Retry-After, and 4xx other than 429 is treated
- * as "this document cannot be read" rather than retried forever.
- */
 export class HttpExtractor implements Extractor {
   readonly name = 'http';
 

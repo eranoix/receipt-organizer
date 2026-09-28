@@ -1,9 +1,6 @@
--- The mirror of the cloud drive. The drive is the source of truth; this is a
--- copy we can query, join and page through without calling the provider.
-
 CREATE TABLE drive_items (
-  id                  text PRIMARY KEY,           -- the drive's own item id
-  parent_id           text,                       -- null only for the root
+  id                  text PRIMARY KEY,
+  parent_id           text,
   name                text NOT NULL,
   is_folder           boolean NOT NULL,
   size                integer NOT NULL DEFAULT 0,
@@ -20,7 +17,6 @@ CREATE INDEX drive_items_parent_idx ON drive_items (parent_id) WHERE deleted_at 
 CREATE INDEX drive_items_sha_idx ON drive_items (sha256) WHERE deleted_at IS NULL AND NOT is_folder;
 CREATE INDEX drive_items_path_idx ON drive_items (path text_pattern_ops);
 
--- More than one inbox is allowed: a scanner folder, a phone folder, and so on.
 CREATE TABLE inbox_folders (
   folder_id   text PRIMARY KEY,
   label       text NOT NULL,
@@ -28,9 +24,6 @@ CREATE TABLE inbox_folders (
   created_at  timestamptz NOT NULL DEFAULT now()
 );
 
--- One row per sync stream. The lock columns implement a lease: a holder that
--- stops heartbeating loses the lock after a timeout instead of wedging sync
--- forever.
 CREATE TABLE sync_state (
   name                     text PRIMARY KEY,
   cursor                   text,

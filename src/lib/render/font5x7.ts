@@ -1,4 +1,3 @@
-/** A 5x7 bitmap font, enough for thermal-printer style receipts. Lowercase renders as uppercase. */
 const RAW: Record<string, string> = {
   A: '01110,10001,10001,11111,10001,10001,10001', B: '11110,10001,10001,11110,10001,10001,11110',
   C: '01110,10001,10000,10000,10000,10001,01110', D: '11110,10001,10001,10001,10001,10001,11110',

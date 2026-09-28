@@ -13,7 +13,7 @@ describe('submit', () => {
     expect(a.created).toBe(true);
     expect(b.created).toBe(false);
     expect(b.op.id).toBe(a.op.id);
-    expect(b.op.payload).toEqual({ n: 1 }); // the first intent wins
+    expect(b.op.payload).toEqual({ n: 1 });
     expect(store.ops.size).toBe(1);
   });
 
@@ -54,7 +54,7 @@ describe('execution', () => {
         clock.advance(cur.nextAttemptAt - clock.now());
       }
     }
-    expect(waits).toEqual([1_000, 2_000, 3_000]); // doubled, then capped
+    expect(waits).toEqual([1_000, 2_000, 3_000]);
     expect((await store.get(op.id))?.status).toBe('succeeded');
     expect(store.attemptsOf(op.id).map((a) => a.outcome)).toEqual(['retryable', 'retryable', 'retryable', 'applied']);
   });
@@ -198,7 +198,7 @@ describe('dead-letter queue', () => {
     const { queue, store } = makeQueue();
     queue.register('x', { run: async () => { throw new PermanentError('no'); } });
     const { op } = await queue.submit({ kind: 'x', idempotencyKey: '1' });
-    expect(await queue.discard(op.id)).toBe(false); // still pending
+    expect(await queue.discard(op.id)).toBe(false);
     await queue.runOnce();
     expect(await queue.discard(op.id)).toBe(true);
     expect((await store.get(op.id))?.status).toBe('discarded');
@@ -247,7 +247,7 @@ describe('convergence and self-heal', () => {
     const { queue, store, clock } = makeQueue({ leaseMs: 1_000 });
     queue.register('x', { run: ok });
     const { op } = await queue.submit({ kind: 'x', idempotencyKey: '1' });
-    await store.claimDue(clock.now(), 10, 1_000, ['x']); // a worker took it, then vanished
+    await store.claimDue(clock.now(), 10, 1_000, ['x']);
     clock.advance(5_000);
     const heal = await queue.selfHeal();
     expect(heal.reclaimed).toBe(1);
@@ -282,7 +282,7 @@ describe('circuit breaker in the queue', () => {
     const s = await queue.runOnce();
     expect(s.deferred).toBeGreaterThan(0);
     expect(run).toHaveBeenCalledTimes(3);
-    expect((await store.get(op.id))!.attempts).toBe(0); // deferral does not spend the budget
+    expect((await store.get(op.id))!.attempts).toBe(0);
   });
 
   it('lets exactly one trial through after the cooldown, and closes on success', async () => {
@@ -300,8 +300,6 @@ describe('circuit breaker in the queue', () => {
     clock.advance(cfg.cooldownMs + 60_000);
     run.mockClear();
     const s = await queue.runOnce();
-    // First claimed op is the trial; it succeeds and closes the breaker, so
-    // the second one in the same pass goes through normally.
     expect((await queue.breakerState('drive')).mode).toBe('closed');
     expect(s.applied).toBe(2);
   });

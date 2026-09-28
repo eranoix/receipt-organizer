@@ -38,7 +38,6 @@ function where(f: LogQuery, skip: 'state' | 'source' | null) {
   return { sql: cond.length ? `WHERE ${cond.join(' AND ')}` : '', vals };
 }
 
-/** Filtering, search, counts and paging all run in SQL over the unified view. */
 export async function queryLogs(f: LogQuery) {
   const pageSize = Math.min(100, Math.max(10, f.pageSize ?? 25));
   const page = Math.max(1, f.page ?? 1);
@@ -76,7 +75,6 @@ export async function logDetail(uid: string) {
 
 export type LogAction = 'replay' | 'replay_renamed' | 'discard' | 'retry' | 'handle';
 
-/** A free name in the target folder: "file (2).pdf", "file (3).pdf", ... */
 async function freeName(parentId: string, name: string): Promise<string> {
   const dot = name.lastIndexOf('.');
   const base = dot > 0 ? name.slice(0, dot) : name;
@@ -137,7 +135,6 @@ export async function applyLogAction(uid: string, action: LogAction, user: Sessi
   throw new HttpError(400, `"${action}" does not apply to this entry`);
 }
 
-/** Bulk remediation is recorded as a job so its outcome stays visible afterwards. */
 export async function applyBulk(uids: string[], action: LogAction, user: SessionUser, traceId: string) {
   const list = [...new Set(uids)].slice(0, 200);
   const job = await q1<{ id: number }>(`INSERT INTO jobs (kind, status, total, payload, trace_id, created_by, started_at) VALUES ('bulk_remediate', 'running', $1, $2, $3, $4, now()) RETURNING id`,

@@ -1,15 +1,3 @@
-/**
- * Microsoft Graph (OneDrive) adapter.
- *
- * A stub in the honest sense: it is written against the documented REST
- * shapes and wired through the same interface, but this repository ships
- * with no tenant, so it is exercised only when the GRAPH_* variables are
- * set. The parts that matter for correctness are here: the provider's error
- * code is carried into DriveError (the queue classifies on it), Retry-After
- * is honoured, conflicts fail instead of renaming, and every call takes the
- * AbortSignal.
- */
-
 import { DriveError, type DeltaPage, type DriveAdapter, type DriveChange, type DriveErrorCode, type DriveItem } from './types';
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';

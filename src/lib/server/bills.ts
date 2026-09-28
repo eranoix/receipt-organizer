@@ -6,7 +6,6 @@ import { logEvent } from './events';
 
 export const todayIso = () => new Date().toISOString().slice(0, 10);
 
-/** Create occurrences from four months back to six weeks ahead. Idempotent. */
 export async function ensureOccurrences(today = todayIso()): Promise<number> {
   const bills = await q<{ id: number; due_day: number; starts_on: string; amount_cents: number }>('SELECT id, due_day, starts_on, amount_cents FROM bills WHERE active');
   const from = `${addDays(today, -125).slice(0, 7)}-01`;
@@ -22,7 +21,6 @@ export async function ensureOccurrences(today = todayIso()): Promise<number> {
   return n;
 }
 
-/** Pair open bill occurrences with receipts that paid them. */
 export async function matchAll(): Promise<number> {
   const occ = await q<{ id: number; bill_id: number; due_date: string; expected_cents: number; tolerance_pct: number; payee: string; name: string }>(
     `SELECT o.id, o.bill_id, o.due_date, o.expected_cents, b.tolerance_pct, b.payee, b.name

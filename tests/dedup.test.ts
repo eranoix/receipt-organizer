@@ -47,7 +47,7 @@ describe('intake gate: findOriginal', () => {
   it('is stable for copies arriving in the same batch, whichever is looked at first', () => {
     const a = { id: 'x1', name: 'scan.pdf', sha256: h, firstSeenAt: 100, settled: false };
     const b = { id: 'x0', name: 'scan (1).pdf', sha256: h, firstSeenAt: 100, settled: false };
-    expect(findOriginal(a, [b])).toBeNull(); // the shorter name is the original
+    expect(findOriginal(a, [b])).toBeNull();
     expect(findOriginal(b, [a])).toBe('x1');
   });
 

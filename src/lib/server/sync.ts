@@ -35,7 +35,6 @@ async function recordError(err: unknown) {
   await logEvent({ source: 'sync', level: 'warn', action: 'sync.failed', message: `Drive sync failed: ${msg}` });
 }
 
-/** Pull what changed since the last cursor and fold it into the mirror. */
 export async function deltaSync(me: string): Promise<{ changes: number; skipped?: boolean }> {
   if (!(await acquire(me))) return { changes: 0, skipped: true };
   try {
@@ -64,7 +63,6 @@ export async function deltaSync(me: string): Promise<{ changes: number; skipped?
   }
 }
 
-/** Compare the whole drive with the mirror and repair any drift. */
 export async function fullReconcile(me: string, actorId: number | null = null): Promise<{ upserts: number; removed: number; kept: number } | null> {
   if (!(await acquire(me))) return null;
   try {

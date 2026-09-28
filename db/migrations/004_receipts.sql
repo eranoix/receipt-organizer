@@ -1,5 +1,3 @@
--- What we read from each receipt, and every reading attempt.
-
 CREATE TABLE receipts (
   file_id                 text PRIMARY KEY REFERENCES drive_items(id) ON DELETE CASCADE,
   ocr_state               text NOT NULL DEFAULT 'queued'
@@ -50,8 +48,6 @@ CREATE TABLE extraction_runs (
 );
 CREATE INDEX extraction_runs_file_idx ON extraction_runs (file_id, id DESC);
 
--- Hand-written hints for the classifier ("anything mentioning 'fiber' goes to
--- Internet"). History of confirmed filings carries more weight than these.
 CREATE TABLE folder_rules (
   id          int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   pattern     text NOT NULL,

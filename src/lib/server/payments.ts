@@ -15,8 +15,6 @@ export async function createPayment(raw: Partial<PaymentInput>, user: SessionUse
     const occ = await q1<{ status: string }>('SELECT status FROM bill_occurrences WHERE id = $1', [p.billOccurrenceId]);
     if (!occ) throw new HttpError(422, 'That bill no longer exists', { billOccurrenceId: 'not found' });
   }
-  // The client generates the idempotency key when the form opens, so a
-  // double submit or a retry after a timeout cannot pay twice.
   const inserted = await q1<{ id: number }>(
     `INSERT INTO payments (idempotency_key, method, payee, amount_cents, details, bill_occurrence_id, status, trace_id, created_by)
      VALUES ($1, $2, $3, $4, $5, $6, 'submitted', $7, $8)
@@ -31,12 +29,6 @@ export async function createPayment(raw: Partial<PaymentInput>, user: SessionUse
   return { id: inserted.id, duplicate: false };
 }
 
-/**
- * Poll the provider for payments in flight. A settled payment hands back a
- * receipt, which is uploaded into the primary inbox THROUGH THE QUEUE like
- * any other drive change; from there it is read, matched to its bill and
- * waits to be filed, exactly like a receipt someone dropped in by hand.
- */
 export async function settlePayments(): Promise<number> {
   const rows = await q<{ id: number; idempotency_key: string; method: 'pix' | 'transfer' | 'boleto'; payee: string; amount_cents: number; details: Record<string, string>; provider_ref: string; sent_at: Date; trace_id: string | null; created_by: number | null }>(
     `SELECT * FROM payments WHERE status = 'processing' AND provider_ref IS NOT NULL ORDER BY id LIMIT 20`);

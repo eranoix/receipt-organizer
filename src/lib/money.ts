@@ -5,11 +5,6 @@ export function formatCents(cents: number | null | undefined): string {
   return brl.format(cents / 100);
 }
 
-/**
- * Parse a money string written either Brazilian style ("1.234,56") or
- * international style ("1,234.56") into cents. The last separator followed by
- * exactly two digits is the decimal one; everything else is grouping.
- */
 export function parseMoneyToCents(input: string): number | null {
   const s = input.replace(/[^\d.,-]/g, '');
   if (!/\d/.test(s)) return null;

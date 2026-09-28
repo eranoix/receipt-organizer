@@ -1,4 +1,3 @@
-/** Monthly due dates of a bill between two dates (inclusive), as YYYY-MM-DD. */
 export function dueDatesBetween(bill: { dueDay: number; startsOn: string }, from: string, to: string): string[] {
   const out: string[] = [];
   const [fy, fm] = from.split('-').map(Number);

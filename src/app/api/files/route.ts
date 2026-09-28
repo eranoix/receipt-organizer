@@ -5,7 +5,6 @@ import { createFolder, deleteItems, listFolder, moveItems, renameItem, rootFolde
 export const GET = api({}, async ({ req, user }) => {
   let folder = req.nextUrl.searchParams.get('folder');
   if (!folder) {
-    // Members and viewers start at their first folder, not at a root they cannot open.
     folder = user.role === 'admin' || user.scopePaths.includes('/')
       ? await rootFolderId()
       : (await q1<{ id: string }>(`SELECT id FROM drive_items WHERE path = $1 AND is_folder AND deleted_at IS NULL`, [user.scopePaths[0] ?? '']))?.id ?? '';

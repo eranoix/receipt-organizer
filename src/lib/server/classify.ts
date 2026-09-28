@@ -20,7 +20,6 @@ export async function validTargetFolders(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.id));
 }
 
-/** Recompute the folder suggestion for one receipt. Never moves anything. */
 export async function refreshSuggestion(fileId: string, ctx?: { history: HistoryRow[]; rules: { pattern: string; folderId: string }[]; folders: Set<string> }): Promise<void> {
   const r = await q1<{ payee: string | null; payee_tax_id: string | null; reference: string | null; raw_text: string | null }>(
     `SELECT r.payee, r.payee_tax_id, r.reference,
@@ -37,7 +36,6 @@ export async function refreshSuggestion(fileId: string, ctx?: { history: History
     [fileId, s.folderId, s.confidence, JSON.stringify(s.reasons), JSON.stringify(s.alternatives)]);
 }
 
-/** After a filing changes the history, refresh every receipt still waiting in an inbox. */
 export async function refreshInboxSuggestions(): Promise<number> {
   const rows = await q<{ file_id: string }>(`SELECT file_id FROM receipt_view WHERE in_inbox AND stage IN ('suggested', 'needs_decision')`);
   if (rows.length === 0) return 0;

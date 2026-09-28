@@ -21,7 +21,6 @@ export async function rootFolderId(): Promise<string> {
   return r.id;
 }
 
-/** Load an item the user is allowed to see. Out of scope looks exactly like missing. */
 export async function itemForUser(id: string, user: SessionUser): Promise<ItemRow> {
   const it = await q1<ItemRow>(`SELECT * FROM drive_items WHERE id = $1 AND deleted_at IS NULL`, [id]);
   if (!it || !canSee(user, it.path)) throw new HttpError(404, 'Not found');
@@ -41,7 +40,6 @@ export async function folderTree(user: SessionUser) {
        FROM drive_items f LEFT JOIN inbox_folders ib ON ib.folder_id = f.id
       WHERE f.is_folder AND f.deleted_at IS NULL ORDER BY (ib.label IS NULL), f.path`);
   const visible = rows.filter((r) => canSee(user, r.path));
-  // Ancestors of visible folders are shown (so the tree has a shape) but locked.
   const needed = new Set<string>();
   for (const v of visible) {
     let p = v.parent_id;
@@ -171,7 +169,6 @@ export async function deleteItems(ids: string[], user: SessionUser, traceId: str
   return { operationIds: out };
 }
 
-/** Collect files (expanding folders) the user can see, and zip them with their relative paths. */
 export async function zipItems(ids: string[], user: SessionUser): Promise<{ name: string; bytes: Buffer; count: number }> {
   const files: { id: string; rel: string; modified: Date | null }[] = [];
   for (const id of ids.slice(0, 200)) {

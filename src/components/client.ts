@@ -12,7 +12,6 @@ export function newKey(prefix = 'k'): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** JSON request with a fresh trace id, so every click can be found in the operations center. */
 export async function apiSend<T = unknown>(method: string, url: string, body?: unknown, traceId = newKey('tr')): Promise<T> {
   const res = await fetch(url, {
     method,
@@ -27,11 +26,6 @@ export async function apiSend<T = unknown>(method: string, url: string, body?: u
   return json as T;
 }
 
-/**
- * Fetch JSON and keep it fresh. Depends on the URL string only, never on
- * objects created during render: an options object in the dependency list
- * re-fetches on every render and can starve navigation.
- */
 export function useApi<T>(url: string | null, refreshMs = 0) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);

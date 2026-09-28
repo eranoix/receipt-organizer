@@ -11,7 +11,6 @@ export interface EventInput {
   actorId?: number | null;
   traceId?: string | null;
   data?: Record<string, unknown>;
-  /** Recorded already handled: the actionable item lives elsewhere (e.g. the dead-letter entry). */
   handled?: boolean;
 }
 
@@ -26,7 +25,6 @@ export async function logEvent(e: EventInput, db?: Db): Promise<void> {
 
 type Pref = 'notify_dlq' | 'notify_duplicates' | 'notify_bills';
 
-/** Notify users by role, honouring their preferences. */
 export async function notify(opts: { roles: ('admin' | 'member' | 'viewer')[]; pref?: Pref; kind: string; title: string; body?: string; link?: string }, db?: Db): Promise<void> {
   await q(
     `INSERT INTO notifications (user_id, kind, title, body, link)
@@ -37,7 +35,6 @@ export async function notify(opts: { roles: ('admin' | 'member' | 'viewer')[]; p
   );
 }
 
-/** A duplicate was decided (deleted, kept, or found different): its warning is no longer open. */
 export async function resolveDuplicateWarning(fileId: string, db?: Db): Promise<void> {
   await q(`UPDATE events SET handled_at = now() WHERE action = 'duplicate.suspected' AND subject_id = $1 AND handled_at IS NULL`, [fileId], db);
 }

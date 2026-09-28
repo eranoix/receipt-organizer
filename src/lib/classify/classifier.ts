@@ -1,18 +1,3 @@
-/**
- * Folder suggestions.
- *
- * The classifier never moves anything. It proposes a folder with a
- * confidence and the reasons behind it; a person confirms. At or above
- * SUGGEST_THRESHOLD the proposal is shown as "suggested" and can be
- * confirmed in bulk; below it the receipt is flagged "needs a decision".
- *
- * Evidence, strongest first:
- *   1. where receipts with the same tax id were filed before,
- *   2. where receipts from the same payee were filed before,
- *   3. hand-written folder rules (keyword -> folder).
- * Independent signals pointing at the same folder reinforce each other.
- */
-
 import { normalizeKey, similarity } from '../text';
 
 export const SUGGEST_THRESHOLD = 0.8;
@@ -23,7 +8,6 @@ export interface ReceiptForClassify { payee: string | null; payeeTaxId: string |
 export interface Candidate { folderId: string; confidence: number; reasons: string[] }
 export interface Suggestion { folderId: string | null; confidence: number; reasons: string[]; alternatives: Candidate[] }
 
-/** How much n consistent past filings are worth: 1 -> 0.75, 2 -> 0.875, 3 -> 0.94. */
 export function certainty(n: number): number {
   return 1 - 0.5 ** (n + 1);
 }
@@ -68,7 +52,6 @@ export function suggestFolder(r: ReceiptForClassify, history: HistoryRow[], rule
   const ranked: Candidate[] = [...signals.entries()]
     .map(([folderId, s]) => ({
       folderId,
-      // Independent evidence combines like probabilities: 1 - prod(1 - s).
       confidence: Math.min(0.99, 1 - s.scores.reduce((p, x) => p * (1 - x), 1)),
       reasons: s.reasons,
     }))

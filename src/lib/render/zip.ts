@@ -9,12 +9,6 @@ function dosTime(d: Date): { time: number; date: number } {
   };
 }
 
-/**
- * A stored (uncompressed) ZIP. Receipts are already-compressed PDFs and PNGs,
- * so deflating them again buys almost nothing; storing keeps this tiny and
- * obviously correct. Names are UTF-8 (flag bit 11). Duplicate names inside
- * the archive get a numeric suffix instead of silently overwriting.
- */
 export function buildZip(entries: ZipEntry[]): Buffer {
   const locals: Buffer[] = [];
   const centrals: Buffer[] = [];

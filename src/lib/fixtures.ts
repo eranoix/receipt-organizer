@@ -1,14 +1,3 @@
-/**
- * The invented business behind the demo: Juniper Lane Bakery, a small
- * bakery with a landlord, three utilities, a city tax and a few suppliers.
- * Every name, tax id, key and account here is made up; tax ids are all
- * nines (invalid by construction) and the bank is "999".
- *
- * Dates are relative to "today" so the demo always looks current: receipts
- * paid in the last four weeks sit in the inboxes waiting to be filed, older
- * ones are already filed, and upcoming bills are still open.
- */
-
 import { addDays, dueDatesBetween } from './bills/recurrence';
 import { renderReceipt, type ReceiptSpec, type ReceiptStyle } from './render/receipt';
 import { slug } from './text';
@@ -51,16 +40,13 @@ export const BILLS: BillDef[] = [
   { key: 'tax', name: 'City business tax', payee: 'Riverton City Tax Office', taxId: '99.999.999/0001-05', amountCents: 124_055, tolerancePct: 0, dueDay: 20, method: 'boleto', folder: 'Taxes', format: 'pdf' },
 ];
 
-/** Bill occurrences the seed pays through the payments center instead of a dropped receipt. */
 export const PAID_VIA_PAYMENTS_CENTER = 'internet';
-/** Left unpaid on purpose, so the bills screen has something overdue to act on. */
 export const LEFT_UNPAID = 'water';
 
 export interface FixtureFile {
   path: string;
   bytes: Buffer;
   spec: ReceiptSpec | null;
-  /** Why this file exists in the demo. */
   role: 'filed' | 'inbox' | 'duplicate' | 'collision' | 'unreadable' | 'torn' | 'mangled';
   duplicateOf?: string;
 }
@@ -68,7 +54,6 @@ export interface FixtureFile {
 export interface FixtureSet {
   today: string;
   files: FixtureFile[];
-  /** The latest occurrence of the bill paid via the payments center. */
   paymentsCenterDue: string | null;
 }
 
@@ -94,12 +79,11 @@ export function buildFixtureSet(today = new Date().toISOString().slice(0, 10)): 
   let seq = 4100;
   let paymentsCenterDue: string | null = null;
 
-  // Recurring bills: one receipt per past occurrence, paid two days early.
   for (const b of BILLS) {
     const dues = dueDatesBetween({ dueDay: b.dueDay, startsOn: monthStart(today, 4) }, monthStart(today, 3), addDays(today, 45));
     dues.forEach((due, i) => {
       const paidOn = addDays(due, -2);
-      if (paidOn >= today) return; // upcoming: still open
+      if (paidOn >= today) return;
       const recent = addDays(today, -28) < paidOn;
       if (recent && b.key === PAID_VIA_PAYMENTS_CENTER) { paymentsCenterDue = due; return; }
       if (recent && b.key === LEFT_UNPAID) return;
@@ -112,7 +96,6 @@ export function buildFixtureSet(today = new Date().toISOString().slice(0, 10)): 
       add(recent ? 'Inbox' : b.folder, name, spec, b.format, recent ? 'inbox' : 'filed');
     });
   }
-  // If the payments-center bill had no recent past occurrence, pay the next one.
   if (!paymentsCenterDue) {
     const b = BILLS.find((x) => x.key === PAID_VIA_PAYMENTS_CENTER)!;
     paymentsCenterDue = dueDatesBetween({ dueDay: b.dueDay, startsOn: monthStart(today, 4) }, today, addDays(today, 45))[0] ?? null;
@@ -149,7 +132,6 @@ export function buildFixtureSet(today = new Date().toISOString().slice(0, 10)): 
   sup('Phone scans', 'Sunrise Market', '99.999.999/0001-11', 'card', 'png', 2, 5_620, 'inbox');
   sup('Phone scans', ...golden, 'pix', 'png', 16, 96_000, 'inbox', undefined, { pixKey: 'orders@golden-mill.example.com' });
 
-  // Exact copies: the same bytes arriving again under another name.
   const copy = (of: FixtureFile, folder: string, name: string) =>
     files.push({ path: `${folder}/${name}`, bytes: Buffer.from(of.bytes), spec: of.spec, role: 'duplicate', duplicateOf: of.path });
   const power = files.find((f) => f.role === 'filed' && f.path.startsWith('Utilities/Electricity'));

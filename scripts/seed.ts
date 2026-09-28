@@ -1,12 +1,3 @@
-/**
- * Seed the demo: an invented bakery's drive, users, bills and a month of
- * history, produced by running the REAL pipeline (sync, intake, duplicate
- * gate, reading, suggestions, queue, payments) rather than inserting
- * finished rows. What you see on first start is what the code does.
- *
- *   --if-empty  do nothing when users already exist (used by docker compose)
- *   --reset     drop everything, including the local drive, and start over
- */
 import { rm } from 'node:fs/promises';
 import { closePool, pool, q, q1 } from '../src/lib/db';
 import { driveRoot, setDrive } from '../src/lib/drive';
@@ -71,8 +62,6 @@ async function main() {
   const fx = buildFixtureSet(today);
   log(`building drive at ${driveRoot()} with ${fx.files.length} receipts`);
 
-  // 1. The drive as it was before the app existed. Written straight to the
-  //    drive, the way a scanner or phone app would, not through the queue.
   const drive = new LocalDrive(driveRoot());
   setDrive(drive);
   setExtractor(new MockExtractor({ rateLimitEvery: 11, retryAfterMs: 300 }));
@@ -86,7 +75,6 @@ async function main() {
     const item = await drive.createFolder(ids.get(parent)!, f.split('/').pop()!);
     ids.set(f, item.id);
   }
-  // Filed receipts first, so they are "older" than anything in the inboxes.
   const ordered = [...fx.files.filter((f) => f.role === 'filed'), ...fx.files.filter((f) => f.role !== 'filed' && f.role !== 'duplicate'), ...fx.files.filter((f) => f.role === 'duplicate')];
   for (const f of ordered) {
     const folder = f.path.slice(0, f.path.lastIndexOf('/'));
@@ -94,7 +82,6 @@ async function main() {
     ids.set(f.path, item.id);
   }
 
-  // 2. People, configuration and bills.
   await ensureSyncState();
   await q(`UPDATE sync_state SET subscription_expires_at = now() + interval '2 days' WHERE name = 'drive'`);
   const hash = await hashPassword(DEMO_PASSWORD);
@@ -110,7 +97,7 @@ async function main() {
 
   const ctx = createWorker({ backoffBaseMs: 40 });
   await selfHeal(ctx);
-  await deltaSync(ctx.id); // mirror the drive, including folder ids
+  await deltaSync(ctx.id);
 
   for (const ib of INBOXES) await q('INSERT INTO inbox_folders (folder_id, label, is_primary) VALUES ($1, $2, $3)', [ids.get(ib.path), ib.label, ib.primary]);
   for (const r of FOLDER_RULES) await q('INSERT INTO folder_rules (pattern, folder_id, created_by) VALUES ($1, $2, $3)', [r.pattern, ids.get(r.path), lia]);
@@ -123,11 +110,9 @@ async function main() {
   }
   await ensureOccurrences(today);
 
-  // 3. Run the pipeline until everything has been hashed, gated and read.
   await settle(ctx, 'initial intake', async () => {
     const r = await q1<{ n: number }>(`SELECT count(*) AS n FROM drive_items d LEFT JOIN receipts r ON r.file_id = d.id
                                         WHERE NOT d.is_folder AND d.deleted_at IS NULL AND (d.sha256 IS NULL OR r.file_id IS NULL OR r.ocr_state IN ('queued', 'running'))`);
-    // Filed receipts are read too ("backfill"), so the classifier has history.
     await q(`INSERT INTO receipts (file_id, ocr_state) SELECT d.id, 'queued' FROM drive_items d
               LEFT JOIN receipts r ON r.file_id = d.id LEFT JOIN inbox_folders ib ON ib.folder_id = d.parent_id
              WHERE NOT d.is_folder AND d.deleted_at IS NULL AND r.file_id IS NULL AND ib.folder_id IS NULL`);
@@ -139,7 +124,6 @@ async function main() {
   const byName = async (name: string, folder = 'Inbox') => (await q1<{ id: string }>(`SELECT d.id FROM drive_items d WHERE d.name = $1 AND d.parent_id = $2 AND d.deleted_at IS NULL`, [name, ids.get(folder)]))!.id;
   const fileIn = (role: string) => fx.files.find((f) => f.role === role)!;
 
-  // 4. Duplicates: prove one, delete another through an observable job.
   const cands = await q<{ id: number; name: string }>(`SELECT dc.id, d.name FROM duplicate_candidates dc JOIN drive_items d ON d.id = dc.file_id ORDER BY dc.id`);
   const boxCopy = cands.find((c) => c.name === 'boxwell-order-copy.pdf');
   const firstOther = cands.find((c) => c !== boxCopy);
@@ -150,7 +134,6 @@ async function main() {
   }
   log(`duplicates: ${cands.length} found`);
 
-  // 5. Filing: one confirmation that needs retries (the drive throttles twice).
   const goldenInbox = await q1<{ file_id: string }>(`SELECT file_id FROM receipt_view WHERE in_inbox AND payee = 'Golden Mill Flour' AND stage = 'suggested' ORDER BY name LIMIT 1`);
   if (goldenInbox) {
     drive.faults.set('move', { remaining: 2, code: 'throttled' });
@@ -158,14 +141,12 @@ async function main() {
     await settle(ctx, 'throttled filing', idle);
     drive.faults.delete('move');
   }
-  // Two quick confirmations that go through first time.
   const two = await q<{ file_id: string }>(`SELECT file_id FROM receipt_view WHERE in_inbox AND stage = 'suggested' AND payee IN ('Riverton City Tax Office', 'Maple Street Properties') LIMIT 2`);
   if (two.length) {
     await confirmFiling(two.map((t) => ({ fileId: t.file_id })), await U(lia), newTraceId());
     await settle(ctx, 'confirmations', idle);
   }
 
-  // 6. Dead letters, each a different kind of failure.
   const collision = fileIn('collision');
   const collisionId = await byName(collision.path.split('/').pop()!);
   await confirmFiling([{ fileId: collisionId, folderId: ids.get('Suppliers/Dairy') }], await U(tom), newTraceId());
@@ -188,7 +169,6 @@ async function main() {
   }
   await enqueue({ kind: 'drive.delete', idempotencyKey: 'delete:loc_000000000000', traceId: newTraceId(), createdBy: lia, payload: { itemId: 'loc_000000000000', name: 'old-scan.pdf', intent: 'delete' } });
 
-  // 7. Reading: a person fixes a torn receipt, and an old misreading gets a re-read proposal.
   const tornId = await byName(fileIn('torn').path.split('/').pop()!);
   await updateFields(tornId, { payee: 'Harbor Dairy Co-op' }, await U(tom), newTraceId());
   const mangledId = await byName(fileIn('mangled').path.split('/').pop()!);
@@ -198,7 +178,6 @@ async function main() {
   await createReprocessJob(filedSample.map((f) => f.file_id), await U(lia), newTraceId());
   await settle(ctx, 'reading', idle);
 
-  // 8. Payments: one that settles and returns a receipt, one the provider declines.
   const internet = await q1<{ id: number; expected_cents: number }>(
     `SELECT o.id, o.expected_cents FROM bill_occurrences o JOIN bills b ON b.id = o.bill_id WHERE b.name = 'Internet' AND o.due_date = $1`, [fx.paymentsCenterDue]);
   if (internet) {
@@ -207,7 +186,6 @@ async function main() {
   await createPayment({ method: 'transfer', payee: 'DECLINE Test Supplier', amountCents: 12_345, bankCode: '999', branch: '0000', account: '12345-6', idempotencyKey: 'seed-payment-declined' }, await U(lia), newTraceId());
   await settle(ctx, 'payments', idle, 30_000);
 
-  // 9. A few human touches for the activity feed.
   await q(`UPDATE users SET last_login_at = now() - interval '2 days 3 hours' WHERE id = $1`, [tom]);
   await q(`UPDATE users SET last_login_at = now() - interval '6 days' WHERE id = $1`, [ines]);
   await logEvent({ source: 'audit', action: 'auth.login', message: 'Lia Moreno signed in', actorId: lia });

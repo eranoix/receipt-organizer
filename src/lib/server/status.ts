@@ -9,10 +9,6 @@ const ago = (ms: number) => {
   return `${Math.round(s / 3600)} h ago`;
 };
 
-/**
- * Everything the status page shows, health and connections together, with
- * the verdict computed from the same checks. The sidebar dot reads the level.
- */
 export async function systemStatus(isAdmin: boolean) {
   const checks: Check[] = [];
   const t0 = Date.now();

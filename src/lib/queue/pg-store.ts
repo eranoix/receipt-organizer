@@ -45,7 +45,6 @@ export class PgQueueStore implements QueueStore {
         n.traceId ?? null, n.subjectId ?? null, n.createdBy ?? null, ts(now)],
     );
     if (ins.rows[0]) return { op: toOperation(ins.rows[0]), created: true };
-    // The unique index absorbed a duplicate; read back what is actually there.
     const existing = await this.db.query<OpRow>('SELECT * FROM operations WHERE kind = $1 AND idempotency_key = $2', [n.kind, n.idempotencyKey]);
     if (!existing.rows[0]) throw new Error('insert absorbed by the unique index but no row found');
     return { op: toOperation(existing.rows[0]), created: false };
@@ -57,8 +56,6 @@ export class PgQueueStore implements QueueStore {
   }
 
   async claimDue(now: number, limit: number, leaseMs: number, kinds: string[]) {
-    // One statement: SKIP LOCKED lets several workers claim in parallel
-    // without ever handing the same row to two of them.
     const r = await this.db.query<OpRow>(
       `UPDATE operations o SET status = 'running', lease_expires_at = $2, updated_at = $1
         WHERE o.id IN (

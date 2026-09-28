@@ -1,17 +1,3 @@
-/**
- * Match bills to receipts.
- *
- * A receipt pays a bill occurrence when its payment date falls in a window
- * around the due date and its amount is within the bill's tolerance. Both
- * fields must be present: a receipt whose date or amount could not be read is
- * never matched by guesswork, it waits for a person to fix the field.
- *
- * Fixed bills (tolerance 0) match on the exact amount even if the payee name
- * was read differently. Variable bills (electricity, water) also need the
- * payee to look alike, otherwise any purchase of a similar size near the due
- * date would "pay" the power bill.
- */
-
 import { similarity } from '../text';
 import { daysBetween } from './recurrence';
 
@@ -25,7 +11,7 @@ export interface Match { occurrenceId: number; fileId: string; score: number }
 
 export function scoreMatch(o: OpenOccurrence, r: ReceiptFacts): number | null {
   if (!r.paymentDate || r.amountCents == null) return null;
-  const offset = daysBetween(o.dueDate, r.paymentDate); // negative = paid early
+  const offset = daysBetween(o.dueDate, r.paymentDate);
   if (offset < -WINDOW_BEFORE_DAYS || offset > WINDOW_AFTER_DAYS) return null;
 
   const allowed = Math.round((o.expectedCents * o.tolerancePct) / 100);
@@ -40,7 +26,6 @@ export function scoreMatch(o: OpenOccurrence, r: ReceiptFacts): number | null {
   return Math.round((0.5 * amountScore + 0.25 * dateScore + 0.25 * payeeSim) * 100) / 100;
 }
 
-/** One-to-one assignment, best pairs first. Deterministic for equal scores. */
 export function matchReceipts(occurrences: OpenOccurrence[], receipts: ReceiptFacts[], minScore = MIN_SCORE): Match[] {
   const pairs: Match[] = [];
   for (const o of occurrences) {

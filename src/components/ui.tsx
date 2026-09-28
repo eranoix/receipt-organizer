@@ -43,7 +43,6 @@ export function StageBadge({ stage }: { stage: string | null | undefined }) {
   return <Badge tone={tone}>{label}</Badge>;
 }
 
-/** Confidence bar with the 80% threshold marked, so "76%" visibly falls short. */
 export function Confidence({ value, compact }: { value: number | null | undefined; compact?: boolean }) {
   if (value == null) return <span className="text-xs text-muted">-</span>;
   const pct = Math.round(value * 100);

@@ -14,8 +14,6 @@ CREATE TABLE jobs (
   finished_at  timestamptz
 );
 
--- A duplicate is only a suspicion until the bytes are compared. Deletion is
--- allowed from 'proven' alone.
 CREATE TABLE duplicate_candidates (
   id           int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   file_id      text NOT NULL UNIQUE,

@@ -1,13 +1,3 @@
-/**
- * Optimistic overlay: show the drive as it WILL be once queued operations
- * finish, with a badge on everything still in flight.
- *
- * The mirror only changes after the provider confirms, so without this a
- * file the user just dragged to "Rent" would sit in the Inbox for a few
- * seconds and invite a second drag. Dead operations are not applied: the
- * item stays where it really is, flagged as failed, with the reason.
- */
-
 export interface ListedItem {
   id: string;
   parentId: string | null;
@@ -57,7 +47,7 @@ export function applyOverlay<T extends ListedItem>(items: T[], ops: PendingOp[],
     if (op.kind === 'drive.move' && p.itemId) {
       const here = out.get(p.itemId);
       if (here && p.targetParentId !== folderId) {
-        out.delete(p.itemId); // on its way somewhere else
+        out.delete(p.itemId);
       } else if (here) {
         here.name = p.name ?? here.name;
         here.pending = badge;

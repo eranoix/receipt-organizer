@@ -18,16 +18,10 @@ export type PaymentStatus =
 
 export interface PaymentProvider {
   readonly name: string;
-  /** Idempotent: sending the same key twice returns the same reference. */
   send(req: SendRequest, signal?: AbortSignal): Promise<{ ref: string }>;
   status(ref: string, req: SendRequest, sentAt: number, signal?: AbortSignal): Promise<PaymentStatus>;
 }
 
-/**
- * A payment provider that settles every payment a few seconds after it is
- * sent and hands back a receipt, the way a real bank API delivers a proof of
- * payment. A payee containing "DECLINE" is refused, to show the failure path.
- */
 export class MockPaymentProvider implements PaymentProvider {
   readonly name = 'mock';
 

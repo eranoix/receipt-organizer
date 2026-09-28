@@ -7,11 +7,6 @@ import { getSetting } from './settings';
 
 interface FileRow { id: string; name: string; parent_id: string; size: number; first_seen_at: Date; label: string }
 
-/**
- * Sweep every inbox for files that have not been taken in yet. Runs after
- * each sync and on its own timer, so a file that arrives by any route (delta,
- * reconciliation, a rename that confused something) is still picked up.
- */
 export async function intakeScan(limit = 50): Promise<number> {
   const rows = await q<FileRow>(
     `SELECT d.id, d.name, d.parent_id, d.size, d.first_seen_at, ib.label
@@ -34,11 +29,6 @@ export async function intakeScan(limit = 50): Promise<number> {
   return n;
 }
 
-/**
- * The duplicate gate. A file whose bytes hash the same as one we already
- * hold is parked as a suspected duplicate and kept OUT of the reading and
- * filing queue, so nobody spends time classifying a copy.
- */
 async function intakeFile(f: FileRow): Promise<void> {
   const traceId = newTraceId();
   const bytes = await drive().read(f.id, AbortSignal.timeout(30_000));
@@ -46,8 +36,6 @@ async function intakeFile(f: FileRow): Promise<void> {
   await q('UPDATE drive_items SET sha256 = $2 WHERE id = $1', [f.id, hash]);
 
   if (await getSetting('dedup.enabled')) {
-    // Same size is a precondition for same content, so only same-size files
-    // that were never hashed need hashing before the comparison is fair.
     const unhashed = await q<{ id: string }>(`SELECT id FROM drive_items WHERE sha256 IS NULL AND size = $1 AND id <> $2 AND NOT is_folder AND deleted_at IS NULL`, [f.size, f.id]);
     for (const u of unhashed) {
       try {
@@ -82,7 +70,6 @@ async function intakeFile(f: FileRow): Promise<void> {
   await logEvent({ source: 'sync', action: 'intake.new', message: `New receipt in ${f.label}: ${f.name}`, subjectId: f.id, traceId });
 }
 
-/** Hash files that were never hashed (filed before the app existed, or changed size). */
 export async function hashBackfill(limit = 25): Promise<number> {
   const rows = await q<{ id: string }>(`SELECT id FROM drive_items WHERE sha256 IS NULL AND NOT is_folder AND deleted_at IS NULL LIMIT $1`, [limit]);
   for (const r of rows) {

@@ -1,8 +1,3 @@
-/**
- * A lease-style lock. A holder must heartbeat; one that stops (crashed,
- * killed, stuck on a network call) loses the lock after `staleMs`, so sync
- * can never wedge forever behind a dead process.
- */
 export interface LockState { owner: string | null; heartbeatAt: number | null }
 
 export type LockDecision = { acquire: true; stolenFrom: string | null } | { acquire: false; heldBy: string; ageMs: number };

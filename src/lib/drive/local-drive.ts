@@ -1,17 +1,3 @@
-/**
- * A cloud drive that lives in a directory.
- *
- * It behaves like the real thing where it matters to the app: items have
- * stable ids that survive renames and moves, every change lands in an
- * append-only change feed that `delta` pages through with a cursor, names
- * collide instead of overwriting, and files dropped into the directory by
- * hand (or by a phone sync client) show up as changes on the next delta.
- *
- * Metadata is kept in `<root>/.drive/state.json` and the feed in
- * `<root>/.drive/changes.jsonl`. The worker is the only writer; the web app
- * only reads, so there is no cross-process write locking to get wrong.
- */
-
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -22,7 +8,6 @@ interface State { seq: number; rootId: string; items: Record<string, Meta>; subs
 interface FeedLine { seq: number; change: DriveChange }
 
 export interface LocalDriveOptions {
-  /** Artificial latency per call, to make timeouts and cancellation observable. */
   latencyMs?: number;
   now?: () => number;
 }
@@ -32,7 +17,6 @@ export class LocalDrive implements DriveAdapter {
   private state: State | null = null;
   private stateMtime = 0;
   private chain: Promise<unknown> = Promise.resolve();
-  /** Fault injection: the next N calls of an operation fail with the given code. */
   readonly faults = new Map<string, { remaining: number; code: DriveErrorCode }>();
 
   constructor(readonly root: string, private readonly opts: LocalDriveOptions = {}) {}
@@ -53,8 +37,6 @@ export class LocalDrive implements DriveAdapter {
       const s = await this.load();
       const from = cursor ? Number(cursor) : NaN;
       if (!Number.isFinite(from)) {
-        // Unknown cursor: hand back everything, like a provider does when a
-        // delta token has expired. The caller reconciles instead of trusting it.
         const changes: DriveChange[] = Object.keys(s.items).map((id) => ({ type: 'upsert', item: this.toItem(id, s) }));
         return { changes, cursor: String(s.seq), reset: true };
       }
@@ -162,11 +144,6 @@ export class LocalDrive implements DriveAdapter {
   }
 
 
-  /**
-   * Apply one mutation: fault injection, cancellation check, then the change
-   * and its feed entries. The signal is checked after the artificial latency
-   * and before touching disk, so a cancelled attempt never lands.
-   */
   private mutate(op: string, signal: AbortSignal | undefined, fn: (s: State) => Promise<string>, affected?: (s: State, id: string) => string[]): Promise<DriveItem> {
     return this.exclusive(async () => {
       await this.pause(signal);
@@ -259,12 +236,6 @@ export class LocalDrive implements DriveAdapter {
     }
   }
 
-  /**
-   * Bring the metadata in line with the directory: files copied in by hand
-   * get ids and an `upsert`, files removed by hand get a `delete`. This is
-   * the local equivalent of the provider noticing a change made by another
-   * client.
-   */
   private async scan() {
     const s = await this.load(true);
     const byPath = new Map<string, string>();

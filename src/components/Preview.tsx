@@ -2,7 +2,6 @@
 
 import { IconDownload, IconFile } from './icons';
 
-/** Inline preview served through the scope-checked content endpoint. */
 export function Preview({ fileId, name, mime, height = 420 }: { fileId: string; name: string; mime: string | null; height?: number }) {
   const src = `/api/files/${encodeURIComponent(fileId)}/content`;
   return (

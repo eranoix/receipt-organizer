@@ -1,12 +1,3 @@
-/**
- * The operation queue. Every drive change (move, rename, create folder, delete,
- * upload) goes through here and gets: an idempotency key, capped exponential
- * retries for transient failures, a deadline budget enforced through an
- * AbortSignal, a circuit breaker per provider with a single HALF_OPEN trial,
- * a dead-letter queue with replay and discard, a convergence loop that settles
- * operations whose effect happened anyway, and a startup self-heal.
- */
-
 import { admit, record, rebuild, initialBreaker, DEFAULT_BREAKER, type BreakerConfig, type BreakerState, type CallResult } from './breaker';
 import { classifyError, type ErrorVerdict } from './errors';
 import type { HandlerSpec, NewOperation, Operation, QueueStore } from './types';
@@ -23,17 +14,12 @@ export interface QueueOptions {
   backoffBaseMs?: number;
   backoffCapMs?: number;
   maxAttempts?: number;
-  /** Upper bound for one attempt, before the deadline is considered. */
   attemptTimeoutMs?: number;
-  /** An attempt is not started with less time than this left before the deadline. */
   minBudgetMs?: number;
-  /** Extra time a handler that ignores its AbortSignal gets before the worker moves on. */
   abandonGraceMs?: number;
   breaker?: BreakerConfig;
-  /** Spreads retries so a recovering provider is not hit by everyone at once. */
   jitter?: (ms: number) => number;
   hooks?: QueueHooks;
-  /** Deadline granted to a replayed operation whose original deadline passed. */
   replayDeadlineMs?: number;
 }
 
@@ -83,17 +69,13 @@ export class OperationQueue {
     return [...this.specs.keys()];
   }
 
-  /** Record an intent. Repeating a submit with the same identity returns the existing operation. */
   submit(op: NewOperation): Promise<{ op: Operation; created: boolean }> {
     return this.store.insert(op, this.now(), { maxAttempts: this.o.maxAttempts });
   }
 
-  /** One bounded pass over everything that is due. */
   async runOnce(limit = 20): Promise<RunSummary> {
     const summary = emptySummary();
 
-    // Abandon what is past its deadline before claiming: doing the work and
-    // then finding out it was too late is the worst of both outcomes.
     for (const op of await this.store.overdue(this.now())) {
       if (await this.kill(op, 'deadline', op.lastError ?? 'deadline passed before the operation could run', op.lastErrorCode ?? 'deadline', 'pending')) {
         summary.expired += 1;
@@ -119,8 +101,6 @@ export class OperationQueue {
       return 'dead';
     }
 
-    // Deadline budget: starting an attempt that cannot finish in time only
-    // creates a half-done effect.
     const remaining = op.deadlineAt == null ? Infinity : op.deadlineAt - startedAt;
     if (remaining < this.o.minBudgetMs) {
       await this.kill(op, 'deadline', `deadline budget exhausted before attempt ${attempt}`, 'deadline');
@@ -131,8 +111,6 @@ export class OperationQueue {
     if (spec.breaker) {
       const gate = await this.admitThroughBreaker(spec.breaker);
       if (!gate.allow) {
-        // Not an attempt: the provider was never called. Push the operation
-        // back without spending its budget.
         await this.store.update(op.id, { status: 'pending', leaseExpiresAt: null, nextAttemptAt: startedAt + gate.retryInMs }, this.now(), 'running');
         return 'deferred';
       }
@@ -145,11 +123,6 @@ export class OperationQueue {
     let abandonTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      // The AbortSignal is the real cancellation: adapters pass it to fetch
-      // and to their own waits, so a timed-out move does not land later. The
-      // race below only guarantees the worker gets its slot back from a
-      // handler that ignores the signal; the convergence loop settles the
-      // rare effect that still lands afterwards.
       const abandoned = new Promise<never>((_, reject) => {
         abandonTimer = setTimeout(
           () => reject(new DOMException('handler ignored cancellation', 'TimeoutError')),
@@ -195,8 +168,6 @@ export class OperationQueue {
       const wait = Math.max(this.backoff(attempt), verdict.retryAfterMs ?? 0);
       const next = now + wait;
       if (op.deadlineAt != null && next + this.o.minBudgetMs > op.deadlineAt) {
-        // The retry could never run in time. Say so now rather than letting
-        // the operation sit "pending" until the deadline sweeps it up.
         await this.kill(withAttempt, 'deadline', verdict.message, verdict.code);
         return 'dead';
       }
@@ -212,15 +183,10 @@ export class OperationQueue {
     }
   }
 
-  /** Capped exponential backoff with jitter. */
   backoff(attempt: number): number {
     return this.o.jitter(Math.min(this.o.backoffBaseMs * 2 ** (attempt - 1), this.o.backoffCapMs));
   }
 
-  /**
-   * Put a dead operation back in line. `payloadPatch` lets a human fix what
-   * made it fail permanently, e.g. choose a new name after a collision.
-   */
   async replay(id: number, payloadPatch?: Record<string, unknown>): Promise<boolean> {
     const op = await this.store.get(id);
     if (!op || (op.status !== 'dead' && op.status !== 'discarded')) return false;
@@ -236,11 +202,6 @@ export class OperationQueue {
     return this.store.update(id, { status: 'discarded', leaseExpiresAt: null, finished: true }, this.now(), 'dead');
   }
 
-  /**
-   * Ask the provider whether the desired end state already holds for work we
-   * think is unfinished, and settle it if so. This is what turns "the move
-   * timed out but actually happened" into a success instead of a DLQ entry.
-   */
   async converge(limit = 50): Promise<{ checked: number; settled: number }> {
     const kinds = [...this.specs.entries()].filter(([, s]) => s.probe).map(([k]) => k);
     if (kinds.length === 0) return { checked: 0, settled: 0 };
@@ -253,7 +214,7 @@ export class OperationQueue {
       try {
         holds = await spec.probe(op.payload, AbortSignal.timeout(this.o.attemptTimeoutMs));
       } catch {
-        continue; // a probe that cannot answer settles nothing
+        continue;
       }
       if (!holds) continue;
       const now = this.now();
@@ -271,14 +232,6 @@ export class OperationQueue {
     return { checked: ops.length, settled };
   }
 
-  /**
-   * Run once when a worker starts.
-   *
-   * A worker that died mid-attempt leaves rows `running` with a lease nobody
-   * will renew, and possibly a breaker stuck HALF_OPEN waiting for a trial
-   * that will never report back. Both are repaired here instead of waiting
-   * for a human to notice that "nothing is moving".
-   */
   async selfHeal(): Promise<{ reclaimed: number; breakers: string[] }> {
     const now = this.now();
     let reclaimed = 0;
@@ -329,8 +282,6 @@ export class OperationQueue {
       const a = admit(state, this.now(), this.o.breaker);
       if (!a.allow) return { allow: false, retryInMs: a.retryInMs };
       if (a.next === state) return { allow: true, trial: false };
-      // A transition (OPEN -> HALF_OPEN, or a new trial) must win the CAS.
-      // Losing means another worker took the trial, so this one waits.
       if (await this.store.saveBreaker(name, a.next, stored ? stored.version : null)) return { allow: true, trial: a.trial };
       return { allow: false, retryInMs: 1_000 };
     }
@@ -351,8 +302,6 @@ export class OperationQueue {
     try {
       await fn();
     } catch (err) {
-      // A hook is bookkeeping around the operation, never the operation
-      // itself: its failure must not flip a finished operation back.
       console.error('[queue] hook failed:', err);
     }
   }

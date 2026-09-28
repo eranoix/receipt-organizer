@@ -8,7 +8,6 @@ export const GET = api({}, async () => {
   return { state: st, pendingOperations: pending?.n ?? 0 };
 });
 
-/** Ask the worker for a full reconciliation on its next tick. */
 export const POST = api({ role: 'member', limit: ['sync', 6, 60_000] }, async ({ user, traceId }) => {
   await q(`UPDATE sync_state SET full_requested_at = now() WHERE name = 'drive'`);
   await logEvent({ source: 'audit', action: 'sync.requested', actorId: user.id, traceId, message: `${user.name} asked for a full reconciliation with the drive` });

@@ -1,4 +1,3 @@
--- One append-only event log for audit, sync, OCR, duplicates and payments.
 CREATE TABLE events (
   id          int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   source      text NOT NULL CHECK (source IN ('audit', 'sync', 'ocr', 'dedup', 'queue', 'payment', 'system')),
@@ -16,8 +15,6 @@ CREATE TABLE events (
 CREATE INDEX events_created_idx ON events (created_at DESC);
 CREATE INDEX events_trace_idx ON events (trace_id);
 
--- Where a receipt stands, computed in exactly one place. Screens, filters and
--- dashboard cards all read this instead of keeping their own copy of the rule.
 CREATE VIEW receipt_view AS
 SELECT
   d.id AS file_id, d.name, d.parent_id, d.path, d.size, d.mime, d.sha256, d.first_seen_at,
@@ -39,11 +36,6 @@ LEFT JOIN receipts r ON r.file_id = d.id
 LEFT JOIN duplicate_candidates dc ON dc.file_id = d.id
 WHERE d.deleted_at IS NULL AND NOT d.is_folder;
 
--- The operations center reads one view, so filtering, search and paging all
--- happen in SQL over every source at once.
---   state: 'open'    a problem nobody has dealt with yet
---          'handled' a problem that was resolved (retried, discarded, marked)
---          'info'    not a problem at all
 CREATE VIEW ops_log AS
 SELECT
   'ev-' || e.id AS uid, e.source, e.level, e.action, e.message, e.subject_id, e.trace_id, e.created_at,

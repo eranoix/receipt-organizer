@@ -1,8 +1,3 @@
-/**
- * Lowercase, strip accents, company-type suffixes and punctuation: the key payees
- * are compared by. The suffix list covers the English forms and the Brazilian ones
- * that appear on real payee names (ltda, eireli, me, sa), which are matched here, not written.
- */
 export function normalizeKey(s: string | null | undefined): string {
   return (s ?? '')
     .normalize('NFD')
@@ -13,7 +8,6 @@ export function normalizeKey(s: string | null | undefined): string {
     .trim();
 }
 
-/** Token-set similarity in [0, 1]. Good enough for "Aurora Power Co." vs "AURORA POWER". */
 export function similarity(a: string | null | undefined, b: string | null | undefined): number {
   const ta = new Set(normalizeKey(a).split(' ').filter(Boolean));
   const tb = new Set(normalizeKey(b).split(' ').filter(Boolean));

@@ -15,7 +15,6 @@ async function loadCandidate(id: number): Promise<Cand | null> {
       WHERE dc.id = $1`, [id]);
 }
 
-/** Compare the bytes of a suspected duplicate with its original, right now. */
 export async function verifyCandidate(id: number, actorId: number | null, traceId: string | null) {
   const c = await loadCandidate(id);
   if (!c) throw new HttpError(404, 'Duplicate not found');
@@ -24,7 +23,6 @@ export async function verifyCandidate(id: number, actorId: number | null, traceI
   const status = proof.identical ? 'proven' : 'not_identical';
   await q(`UPDATE duplicate_candidates SET status = $2, proof = $3, proven_at = now(), updated_at = now() WHERE id = $1`, [id, status, JSON.stringify(proof)]);
   if (!proof.identical) {
-    // Not a copy after all: release it into the normal reading queue.
     await q(`UPDATE receipts SET ocr_state = 'queued' WHERE file_id = $1 AND ocr_state = 'held_duplicate'`, [c.file_id]);
     await resolveDuplicateWarning(c.file_id);
   }
@@ -39,7 +37,6 @@ export async function verifyCandidate(id: number, actorId: number | null, traceI
   return { status, proof };
 }
 
-/** Deleting duplicates is a job with progress, never a fire-and-forget loop in a request. */
 export async function createDedupDeleteJob(candidateIds: number[], user: SessionUser, traceId: string) {
   const ids = [...new Set(candidateIds.map(Number).filter(Number.isInteger))].slice(0, 500);
   if (ids.length === 0) throw new HttpError(400, 'Select at least one duplicate');
@@ -65,7 +62,6 @@ export async function createReprocessJob(fileIds: string[], user: SessionUser, t
   return { jobId: job!.id, total: marked.length };
 }
 
-/** Advance jobs: start queued ones and close finished ones. */
 export async function runJobs(): Promise<void> {
   const queued = await q<{ id: number; payload: { candidateIds: number[] }; trace_id: string | null; created_by: number | null }>(
     `UPDATE jobs SET status = 'running', started_at = now() WHERE id IN (SELECT id FROM jobs WHERE status = 'queued' AND kind = 'dedup_delete' ORDER BY id LIMIT 2 FOR UPDATE SKIP LOCKED)
@@ -77,8 +73,6 @@ export async function runJobs(): Promise<void> {
         await q('UPDATE jobs SET failed = failed + 1 WHERE id = $1', [job.id]);
         continue;
       }
-      // The proof is taken again at deletion time, on fresh bytes. A proof
-      // from yesterday says nothing about a file that changed this morning.
       let proof;
       try {
         proof = (await verifyCandidate(cid, job.created_by, job.trace_id)).proof;

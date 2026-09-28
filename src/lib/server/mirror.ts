@@ -1,11 +1,6 @@
 import { q, type Db } from '../db';
 import type { DriveItem } from '../drive/types';
 
-/**
- * Write provider items into the mirror. The stored hash is cleared when the
- * size changes; a hash that survives a same-size edit is why deletion needs
- * a byte proof and never trusts the stored hash alone.
- */
 export async function upsertItems(items: DriveItem[], db?: Db): Promise<void> {
   if (items.length === 0) return;
   await q(
@@ -24,7 +19,6 @@ export async function upsertItems(items: DriveItem[], db?: Db): Promise<void> {
   );
 }
 
-/** Soft-delete items and everything below them. */
 export async function markDeleted(ids: string[], db?: Db): Promise<number> {
   if (ids.length === 0) return 0;
   const r = await q<{ id: string }>(
@@ -38,7 +32,6 @@ export async function markDeleted(ids: string[], db?: Db): Promise<number> {
   return r.length;
 }
 
-/** Recompute every path from the parent chain. Cheap at this size, and always right. */
 export async function recomputePaths(db?: Db): Promise<void> {
   await q(
     `WITH RECURSIVE t AS (

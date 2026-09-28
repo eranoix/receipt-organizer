@@ -1,9 +1,3 @@
-/**
- * Apply db/migrations/*.sql in order, each in its own transaction, recording
- * a checksum. A migration that was edited after being applied is refused
- * instead of silently skipped: the database and the file would disagree
- * about what the schema is.
- */
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -12,7 +6,6 @@ import { closePool, pool } from '../src/lib/db';
 export async function migrate(dir = path.resolve(process.env.MIGRATIONS_DIR ?? 'db/migrations')): Promise<string[]> {
   const db = pool();
   await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now())`);
-  // One migrator at a time, even if two containers start together.
   const client = await db.connect();
   const applied: string[] = [];
   try {
